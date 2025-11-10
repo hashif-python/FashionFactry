@@ -4,6 +4,8 @@ import { supabase } from './lib/supabase';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Toast } from './components/Toast';
+import { FeatureTicker } from './components/FeatureTicker';
+import { Wishlist } from './pages/Wishlist';
 import { Home } from './pages/Home';
 import { Watches } from './pages/Watches';
 import { Shoes } from './pages/Shoes';
@@ -24,6 +26,7 @@ type Page =
   | 'spectacles'
   | 'product'
   | 'cart'
+  | 'wishlist'
   | 'checkout'
   | 'login'
   | 'signup'
@@ -41,13 +44,16 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [cartItemCount, setCartItemCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const [toast, setToast] = useState<Toast | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchCartCount();
+      fetchWishlistCount();
     } else {
       setCartItemCount(0);
+      setWishlistCount(0);
     }
   }, [user]);
 
@@ -65,6 +71,19 @@ function AppContent() {
     }
   };
 
+  const fetchWishlistCount = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('wishlist_items')
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (!error && data) {
+      setWishlistCount(data.length);
+    }
+  };
+
   const handleNavigate = (page: Page, productId?: string) => {
     setCurrentPage(page);
     if (productId) {
@@ -73,19 +92,26 @@ function AppContent() {
     window.scrollTo(0, 0);
   };
 
-  const handleAddToCart = async (productId: string, quantity: number = 1) => {
+  const handleAddToCart = async (productId: string, quantity: number = 1, variantId?: string) => {
     if (!user) {
       showToast('Please login to add items to cart', 'error');
       handleNavigate('login');
       return;
     }
 
-    const { data: existingItem } = await supabase
+    let query = supabase
       .from('cart_items')
       .select('*')
       .eq('user_id', user.id)
-      .eq('product_id', productId)
-      .maybeSingle();
+      .eq('product_id', productId);
+
+    if (variantId) {
+      query = query.eq('variant_id', variantId);
+    } else {
+      query = query.is('variant_id', null);
+    }
+
+    const { data: existingItem } = await query.maybeSingle();
 
     if (existingItem) {
       const { error } = await supabase
@@ -103,6 +129,7 @@ function AppContent() {
         .insert({
           user_id: user.id,
           product_id: productId,
+          variant_id: variantId || null,
           quantity,
         });
 
@@ -149,6 +176,8 @@ function AppContent() {
         );
       case 'cart':
         return <Cart onNavigate={handleNavigate} />;
+      case 'wishlist':
+        return <Wishlist onNavigate={handleNavigate} onAddToCart={handleAddToCart} />;
       case 'checkout':
         return <Checkout onNavigate={handleNavigate} />;
       case 'login':
@@ -168,7 +197,8 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header onNavigate={handleNavigate} cartItemCount={cartItemCount} />
+      <Header onNavigate={handleNavigate} cartItemCount={cartItemCount} wishlistCount={wishlistCount} />
+      <FeatureTicker />
       <main className="flex-1">{renderPage()}</main>
       <Footer onNavigate={handleNavigate} />
       {toast && (

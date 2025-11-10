@@ -24,8 +24,14 @@ export interface ProductVariant {
   id: string;
   product_id: string;
   name: string;
-  value: string;
-  price_modifier?: number;
+  sku: string;
+  price_modifier: number;
+  stock: number;
+  attributes: {
+    size?: string;
+    color?: string;
+    material?: string;
+  };
 }
 
 export interface Category {
@@ -43,6 +49,7 @@ export interface CartItem {
   quantity: number;
   created_at: string;
   product?: Product;
+  variant?: ProductVariant;
 }
 
 export interface Coupon {
@@ -68,4 +75,12 @@ export interface UserProfile {
   full_name: string;
   phone?: string;
   created_at: string;
+}
+
+export interface WishlistItem {
+  id: string;
+  user_id: string;
+  product_id: string;
+  created_at: string;
+  product?: Product;
 }

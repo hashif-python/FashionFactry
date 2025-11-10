@@ -29,12 +29,12 @@ export const Login = ({ onNavigate, onLoginSuccess }: LoginProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-transparent flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-lg p-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-            <p className="text-gray-600">Sign in to your account</p>
+            <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
+            <p className="text-white/80">Sign in to your account</p>
           </div>
 
           {error && (
@@ -45,7 +45,7 @@ export const Login = ({ onNavigate, onLoginSuccess }: LoginProps) => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white/90 mb-1">
                 Email Address
               </label>
               <input
@@ -59,7 +59,7 @@ export const Login = ({ onNavigate, onLoginSuccess }: LoginProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white/90 mb-1">
                 Password
               </label>
               <input
@@ -83,14 +83,14 @@ export const Login = ({ onNavigate, onLoginSuccess }: LoginProps) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#0B1D39] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold disabled:opacity-50"
+              className="w-full bg-[#C8A962] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold disabled:opacity-50"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-white/80">
               Don't have an account?{' '}
               <button
                 onClick={() => onNavigate('signup')}

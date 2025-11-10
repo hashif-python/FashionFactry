@@ -56,12 +56,12 @@ export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-transparent flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-lg p-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h2>
-            <p className="text-gray-600">Join us today</p>
+            <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
+            <p className="text-white/80">Join us today</p>
           </div>
 
           {error && (
@@ -72,7 +72,7 @@ export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white/90 mb-1">
                 Full Name *
               </label>
               <input
@@ -86,7 +86,7 @@ export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white/90 mb-1">
                 Email Address *
               </label>
               <input
@@ -100,7 +100,7 @@ export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white/90 mb-1">
                 Phone Number *
               </label>
               <input
@@ -114,7 +114,7 @@ export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white/90 mb-1">
                 Password *
               </label>
               <input
@@ -128,7 +128,7 @@ export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white/90 mb-1">
                 Confirm Password *
               </label>
               <input
@@ -149,7 +149,7 @@ export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
                 onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
                 className="mt-1 h-4 w-4 text-[#C8A962] border-gray-300 rounded focus:ring-[#C8A962]"
               />
-              <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
+              <label htmlFor="terms" className="ml-2 text-sm text-white/80">
                 I agree to the Terms & Conditions and Privacy Policy
               </label>
             </div>
@@ -157,14 +157,14 @@ export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#0B1D39] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold disabled:opacity-50"
+              className="w-full bg-[#C8A962] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold disabled:opacity-50"
             >
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-white/80">
               Already have an account?{' '}
               <button
                 onClick={() => onNavigate('login')}

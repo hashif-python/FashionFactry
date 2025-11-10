@@ -35,12 +35,12 @@ export const Orders = ({ onNavigate }: OrdersProps) => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-transparent">
         <div className="text-center">
-          <p className="text-xl text-gray-600 mb-4">Please login to view your orders</p>
+          <p className="text-xl text-white/80 mb-4">Please login to view your orders</p>
           <button
             onClick={() => onNavigate('login')}
-            className="px-6 py-2 bg-[#0B1D39] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
+            className="px-6 py-2 bg-[#C8A962] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
           >
             Login
           </button>
@@ -52,7 +52,7 @@ export const Orders = ({ onNavigate }: OrdersProps) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <div className="text-xl text-white/80">Loading...</div>
       </div>
     );
   }
@@ -73,17 +73,17 @@ export const Orders = ({ onNavigate }: OrdersProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-transparent py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">My Orders</h1>
+        <h1 className="text-4xl font-bold text-white mb-8">My Orders</h1>
 
         {orders.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg">
+          <div className="text-center py-12 bg-white/10 backdrop-blur-md rounded-lg">
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-xl text-gray-600 mb-4">No orders yet</p>
+            <p className="text-xl text-white/80 mb-4">No orders yet</p>
             <button
               onClick={() => onNavigate('home')}
-              className="px-6 py-2 bg-[#0B1D39] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
+              className="px-6 py-2 bg-[#C8A962] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
             >
               Start Shopping
             </button>
@@ -91,11 +91,11 @@ export const Orders = ({ onNavigate }: OrdersProps) => {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg p-6 shadow-md">
+              <div key={order.id} className="bg-white/10 backdrop-blur-md rounded-lg p-6 shadow-md">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="text-sm text-gray-600">Order Number</p>
-                    <p className="text-lg font-bold text-gray-900">{order.order_number}</p>
+                    <p className="text-sm text-white/80">Order Number</p>
+                    <p className="text-lg font-bold text-white">{order.order_number}</p>
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
@@ -108,8 +108,8 @@ export const Orders = ({ onNavigate }: OrdersProps) => {
 
                 <div className="border-t border-gray-200 pt-4">
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600">Order Date</span>
-                    <span className="text-gray-900">
+                    <span className="text-white/80">Order Date</span>
+                    <span className="text-white">
                       {new Date(order.created_at).toLocaleDateString('en-IN', {
                         year: 'numeric',
                         month: 'long',
@@ -118,8 +118,8 @@ export const Orders = ({ onNavigate }: OrdersProps) => {
                     </span>
                   </div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600">Total Amount</span>
-                    <span className="text-lg font-bold text-gray-900">
+                    <span className="text-white/80">Total Amount</span>
+                    <span className="text-lg font-bold text-white">
                       ₹{order.total_amount.toLocaleString()}
                     </span>
                   </div>

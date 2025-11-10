@@ -82,12 +82,12 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-transparent">
         <div className="text-center">
-          <p className="text-xl text-gray-600 mb-4">Please login to checkout</p>
+          <p className="text-xl text-white/80 mb-4">Please login to checkout</p>
           <button
             onClick={() => onNavigate('login')}
-            className="px-6 py-2 bg-[#0B1D39] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
+            className="px-6 py-2 bg-[#C8A962] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
           >
             Login
           </button>
@@ -98,12 +98,12 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
 
   if (cartItems.length === 0 && step !== 3) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-transparent">
         <div className="text-center">
-          <p className="text-xl text-gray-600 mb-4">Your cart is empty</p>
+          <p className="text-xl text-white/80 mb-4">Your cart is empty</p>
           <button
             onClick={() => onNavigate('home')}
-            className="px-6 py-2 bg-[#0B1D39] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
+            className="px-6 py-2 bg-[#C8A962] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
           >
             Continue Shopping
           </button>
@@ -116,23 +116,23 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
 
   if (step === 3) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12">
-        <div className="bg-white rounded-lg p-8 max-w-md text-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center py-12">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 max-w-md text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Order Confirmed!</h2>
-          <p className="text-gray-600 mb-4">Thank you for your purchase</p>
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <p className="text-sm text-gray-600 mb-1">Order Number</p>
+          <h2 className="text-3xl font-bold text-white mb-2">Order Confirmed!</h2>
+          <p className="text-white/80 mb-4">Thank you for your purchase</p>
+          <div className="bg-transparent p-4 rounded-lg mb-6">
+            <p className="text-sm text-white/80 mb-1">Order Number</p>
             <p className="text-xl font-bold text-[#C8A962]">{orderNumber}</p>
           </div>
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-sm text-white/80 mb-6">
             You will receive an email confirmation shortly.
           </p>
           <button
             onClick={() => onNavigate('home')}
-            className="w-full bg-[#0B1D39] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold"
+            className="w-full bg-[#C8A962] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold"
           >
             Continue Shopping
           </button>
@@ -142,17 +142,17 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-transparent py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Checkout</h1>
+        <h1 className="text-4xl font-bold text-white mb-8">Checkout</h1>
 
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-[#C8A962] text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-[#C8A962] text-white' : 'bg-gray-300 text-white/80'}`}>
               1
             </div>
             <div className={`w-24 h-1 ${step >= 2 ? 'bg-[#C8A962]' : 'bg-gray-300'}`}></div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-[#C8A962] text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-[#C8A962] text-white' : 'bg-gray-300 text-white/80'}`}>
               2
             </div>
           </div>
@@ -160,13 +160,13 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg p-6">
+            <form onSubmit={handleSubmit} className="bg-white/10 backdrop-blur-md rounded-lg p-6">
               {step === 1 && (
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Shipping Information</h2>
+                  <h2 className="text-2xl font-bold text-white mb-6">Shipping Information</h2>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-white/90 mb-1">
                         Full Name *
                       </label>
                       <input
@@ -179,7 +179,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/90 mb-1">
                           Email *
                         </label>
                         <input
@@ -191,7 +191,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/90 mb-1">
                           Phone *
                         </label>
                         <input
@@ -204,7 +204,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-white/90 mb-1">
                         Address *
                       </label>
                       <textarea
@@ -217,7 +217,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/90 mb-1">
                           City *
                         </label>
                         <input
@@ -229,7 +229,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/90 mb-1">
                           State *
                         </label>
                         <input
@@ -241,7 +241,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/90 mb-1">
                           Pincode *
                         </label>
                         <input
@@ -259,11 +259,11 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
 
               {step === 2 && (
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Information</h2>
-                  <p className="text-sm text-gray-600 mb-6">Card payment only (No Cash on Delivery)</p>
+                  <h2 className="text-2xl font-bold text-white mb-6">Payment Information</h2>
+                  <p className="text-sm text-white/80 mb-6">Card payment only (No Cash on Delivery)</p>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-white/90 mb-1">
                         Card Number *
                       </label>
                       <input
@@ -276,7 +276,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-white/90 mb-1">
                         Name on Card *
                       </label>
                       <input
@@ -289,7 +289,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/90 mb-1">
                           Expiry Date *
                         </label>
                         <input
@@ -302,7 +302,7 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/90 mb-1">
                           CVV *
                         </label>
                         <input
@@ -324,14 +324,14 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-lg hover:border-[#C8A962] transition-colors font-semibold"
+                    className="flex-1 border-2 border-gray-300 text-white/90 py-3 rounded-lg hover:border-[#C8A962] transition-colors font-semibold"
                   >
                     Back
                   </button>
                 )}
                 <button
                   type="submit"
-                  className="flex-1 bg-[#0B1D39] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold"
+                  className="flex-1 bg-[#C8A962] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold"
                 >
                   {step === 1 ? 'Continue to Payment' : 'Place Order'}
                 </button>
@@ -339,8 +339,8 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
             </form>
           </div>
 
-          <div className="bg-white rounded-lg p-6 h-fit">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
+          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 h-fit">
+            <h2 className="text-xl font-bold text-white mb-4">Order Summary</h2>
             <div className="space-y-3 mb-4">
               {cartItems.map((item) => (
                 <div key={item.id} className="flex gap-3">
@@ -350,15 +350,15 @@ export const Checkout = ({ onNavigate }: CheckoutProps) => {
                     className="w-16 h-16 object-cover rounded"
                   />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{item.product?.name}</p>
-                    <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                    <p className="text-sm font-medium text-white">{item.product?.name}</p>
+                    <p className="text-sm text-white/80">Qty: {item.quantity}</p>
                     <p className="text-sm font-semibold">₹{((item.product?.price || 0) * item.quantity).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
             </div>
             <div className="border-t pt-4">
-              <div className="flex justify-between text-xl font-bold text-gray-900">
+              <div className="flex justify-between text-xl font-bold text-white">
                 <span>Total</span>
                 <span>₹{total.toLocaleString()}</span>
               </div>
