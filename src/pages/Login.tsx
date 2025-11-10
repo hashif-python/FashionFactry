@@ -8,7 +8,7 @@ interface LoginProps {
 
 export const Login = ({ onNavigate, onLoginSuccess }: LoginProps) => {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,8 @@ export const Login = ({ onNavigate, onLoginSuccess }: LoginProps) => {
     setError('');
     setLoading(true);
 
-    const { error: signInError } = await signIn(email, password);
+    // Replace email with phone in signIn method if applicable in AuthContext
+    const { error: signInError } = await signIn(phone, password);
 
     if (signInError) {
       setError(signInError.message);
@@ -46,15 +47,17 @@ export const Login = ({ onNavigate, onLoginSuccess }: LoginProps) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-white/90 mb-1">
-                Email Address
+                Phone Number
               </label>
               <input
-                type="email"
+                type="tel"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                pattern="[0-9]{10}"
+                maxLength={10}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
-                placeholder="you@example.com"
+                placeholder="Enter 10-digit number"
               />
             </div>
 
