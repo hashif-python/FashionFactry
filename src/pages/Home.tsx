@@ -102,9 +102,8 @@ export const Home = ({ onNavigate }: HomeProps) => {
         {heroSlides.map((slide, index) => (
           <div
             key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentSlide ? 'opacity-100' : 'opacity-0'
-            }`}
+            className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'
+              }`}
           >
             <img
               src={slide.image}
@@ -138,9 +137,8 @@ export const Home = ({ onNavigate }: HomeProps) => {
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all ${
-                index === currentSlide ? 'bg-white w-8' : 'bg-white bg-opacity-50'
-              }`}
+              className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-white w-8' : 'bg-white bg-opacity-50'
+                }`}
             />
           ))}
         </div>
@@ -165,11 +163,26 @@ export const Home = ({ onNavigate }: HomeProps) => {
             </div>
           </button>
 
+
+          <button
+            onClick={() => onNavigate('spectacles')}
+            className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+          >
+            <div className="h-64 bg-gradient-to-br from-[#C8A962] to-[#b09552] flex flex-col items-center justify-center text-white p-8 relative">
+              <div className="absolute inset-0 bg-black/20"></div>
+              <div className="relative z-10">
+                <h3 className="text-4xl font-bold mb-2">Spectacles</h3>
+                <p className="text-white/80 text-lg">See clearly, look sharp</p>
+              </div>
+            </div>
+          </button>
+
+
           <button
             onClick={() => onNavigate('shoes')}
             className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
           >
-            <div className="h-64 bg-gradient-to-br from-[#C8A962] to-[#b09552] flex flex-col items-center justify-center text-white p-8 relative">
+            <div className="h-64 bg-gradient-to-br from-[#3D6B64] to-[#2D5550] flex flex-col items-center justify-center text-white p-8 relative">
               <div className="absolute inset-0 bg-black/20"></div>
               <div className="relative z-10">
                 <h3 className="text-4xl font-bold mb-2">Shoes</h3>
@@ -178,18 +191,8 @@ export const Home = ({ onNavigate }: HomeProps) => {
             </div>
           </button>
 
-          <button
-            onClick={() => onNavigate('spectacles')}
-            className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-          >
-            <div className="h-64 bg-gradient-to-br from-[#3D6B64] to-[#2D5550] flex flex-col items-center justify-center text-white p-8 relative">
-              <div className="absolute inset-0 bg-black/20"></div>
-              <div className="relative z-10">
-                <h3 className="text-4xl font-bold mb-2">Spectacles</h3>
-                <p className="text-white/80 text-lg">See clearly, look sharp</p>
-              </div>
-            </div>
-          </button>
+
+
         </div>
 
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 md:p-12 shadow-xl">
