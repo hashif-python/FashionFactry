@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, CartItem, Product } from '../lib/supabase';
 
 interface CartProps {
   onNavigate: (page: string) => void;

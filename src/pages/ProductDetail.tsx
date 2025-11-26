@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Star, ShoppingCart, Plus, Minus, Package } from 'lucide-react';
-import { supabase, Product, ProductVariant } from '../lib/supabase';
 
 interface ProductDetailProps {
   productId: string;
@@ -200,8 +199,8 @@ export const ProductDetail = ({ productId, onNavigate, onAddToCart }: ProductDet
                       key={variant.id}
                       onClick={() => setSelectedVariant(variant)}
                       className={`p-3 border-2 rounded-lg text-left transition-all ${selectedVariant?.id === variant.id
-                          ? 'border-[#C8A962] bg-[#C8A962] bg-opacity-10'
-                          : 'border-gray-200 hover:border-[#C8A962]'
+                        ? 'border-[#C8A962] bg-[#C8A962] bg-opacity-10'
+                        : 'border-gray-200 hover:border-[#C8A962]'
                         }`}
                     >
                       <div className="font-medium text-sm text-white">{getVariantDisplayText(variant)}</div>

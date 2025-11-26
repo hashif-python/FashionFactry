@@ -1,180 +1,136 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from "react";
+import { apiFetch } from "../lib/api";
 
-interface SignupProps {
-  onNavigate: (page: string) => void;
-  onSignupSuccess: () => void;
-}
-
-export const Signup = ({ onNavigate, onSignupSuccess }: SignupProps) => {
-  const { signUp } = useAuth();
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    acceptTerms: false,
+export const Signup = ({ onNavigate }) => {
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
   });
-  const [error, setError] = useState('');
+
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validate = () => {
+    const e: any = {};
+    if (!form.fullName.trim()) e.fullName = "Full name required";
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) e.email = "Invalid email";
+    if (form.phone.replace(/\D/g, "").length < 10) e.phone = "Invalid phone";
+    if (form.password.length < 6) e.password = "Min 6 characters";
+    if (form.password !== form.confirmPassword)
+      e.confirmPassword = "Passwords do not match";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const submit = async (e) => {
     e.preventDefault();
-    setError('');
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (!formData.acceptTerms) {
-      setError('Please accept the terms and conditions');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
+    setServerError("");
+    if (!validate()) return;
 
     setLoading(true);
+    try {
+      sessionStorage.setItem("ff_full_name", form.fullName);
+      sessionStorage.setItem("ff_email", form.email);
+      sessionStorage.setItem("ff_phone", form.phone);
+      sessionStorage.setItem("ff_password", form.password);
 
-    const { error: signUpError } = await signUp(
-      formData.email,
-      formData.password,
-      formData.fullName,
-      formData.phone
-    );
+      await apiFetch("otp-init", {
+        method: "POST",
+        body: JSON.stringify({
+          email: form.email,
+          mobile: form.phone,
+        }),
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
+      onNavigate("verify-otp");
+    } catch (err: any) {
+      setServerError(err.message);
       setLoading(false);
-    } else {
-      onSignupSuccess();
     }
   };
 
   return (
-    <div className="min-h-screen bg-transparent flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full">
-        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
-            <p className="text-white/80">Join us today</p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center py-12">
+      <div className="max-w-md w-full bg-white/10 backdrop-blur p-8 rounded-lg">
+        <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-              {error}
-            </div>
+        {serverError && (
+          <p className="p-3 bg-red-200 text-red-900 rounded-md">
+            {serverError}
+          </p>
+        )}
+
+        <form onSubmit={submit} className="space-y-4">
+          <input
+            placeholder="Full Name"
+            value={form.fullName}
+            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+            className="w-full p-3 rounded-md"
+          />
+          {errors.fullName && (
+            <p className="text-red-400 text-sm">{errors.fullName}</p>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-white/90 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
-                placeholder="John Doe"
-              />
-            </div>
+          <input
+            placeholder="Email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            className="w-full p-3 rounded-md"
+          />
+          {errors.email && (
+            <p className="text-red-400 text-sm">{errors.email}</p>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-white/90 mb-1">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
-                placeholder="you@example.com"
-              />
-            </div>
+          <input
+            placeholder="Phone"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            className="w-full p-3 rounded-md"
+          />
+          {errors.phone && (
+            <p className="text-red-400 text-sm">{errors.phone}</p>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-white/90 mb-1">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
-                placeholder="+91 98765 43210"
-              />
-            </div>
+          <input
+            type="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            className="w-full p-3 rounded-md"
+          />
 
-            <div>
-              <label className="block text-sm font-medium text-white/90 mb-1">
-                Password *
-              </label>
-              <input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
-                placeholder="••••••••"
-              />
-            </div>
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            value={form.confirmPassword}
+            onChange={(e) =>
+              setForm({ ...form, confirmPassword: e.target.value })
+            }
+            className="w-full p-3 rounded-md"
+          />
 
-            <div>
-              <label className="block text-sm font-medium text-white/90 mb-1">
-                Confirm Password *
-              </label>
-              <input
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
-                placeholder="••••••••"
-              />
-            </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#C8A962] p-3 text-white rounded-md"
+          >
+            {loading ? "Creating..." : "Create Account"}
+          </button>
+        </form>
 
-            <div className="flex items-start">
-              <input
-                type="checkbox"
-                id="terms"
-                checked={formData.acceptTerms}
-                onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                className="mt-1 h-4 w-4 text-[#C8A962] border-gray-300 rounded focus:ring-[#C8A962]"
-              />
-              <label htmlFor="terms" className="ml-2 text-sm text-white/80">
-                I agree to the Terms & Conditions and Privacy Policy
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#C8A962] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold disabled:opacity-50"
-            >
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-white/80">
-              Already have an account?{' '}
-              <button
-                onClick={() => onNavigate('login')}
-                className="text-[#C8A962] hover:text-[#0B1D39] font-semibold"
-              >
-                Sign In
-              </button>
-            </p>
-          </div>
-        </div>
+        <p className="text-white text-center mt-4">
+          Already have an account?{" "}
+          <button
+            onClick={() => onNavigate("login")}
+            className="text-[#C8A962]"
+          >
+            Sign In
+          </button>
+        </p>
       </div>
     </div>
   );

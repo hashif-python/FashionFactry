@@ -8,6 +8,14 @@ export default defineConfig({
   },
   server: {
     // Ensures file changes are detected in WSL/Docker/Network drives
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000', // backend server
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+      },
+    },
     watch: {
       usePolling: true,
       interval: 100, // ms

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, Order } from '../lib/supabase';
 
 interface OrdersProps {
   onNavigate: (page: string) => void;

@@ -1,109 +1,127 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { toE164 } from '../lib/phone';
 
-interface LoginProps {
-  onNavigate: (page: string) => void;
-  onLoginSuccess: () => void;
-}
+const COUNTRY_CODES = [
+  { code: '91', name: 'India (+91)' },
+  { code: '1', name: 'USA (+1)' },
+  { code: '971', name: 'UAE (+971)' },
+  { code: '44', name: 'UK (+44)' },
+  { code: '61', name: 'Australia (+61)' },
+  { code: '65', name: 'Singapore (+65)' },
+];
 
-export const Login = ({ onNavigate, onLoginSuccess }: LoginProps) => {
+export const Login = ({ onNavigate, onLoginSuccess }) => {
   const { signIn } = useAuth();
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [countryCode, setCountryCode] = useState('91');
+  const [localPhone, setLocalPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const fullNumber = toE164(countryCode, localPhone); // +919xx...
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Replace email with phone in signIn method if applicable in AuthContext
-    const { error: signInError } = await signIn(phone, password);
+    if (!fullNumber || fullNumber.length < 7) {
+      setError('Enter a valid phone number');
+      setLoading(false);
+      return;
+    }
 
-    if (signInError) {
-      setError(signInError.message);
+    const { error: loginError } = await signIn(fullNumber, password);
+
+    if (loginError) {
+      setError(loginError.message);
       setLoading(false);
     } else {
-      onLoginSuccess();
+      onLoginSuccess?.();
+      navigate('/', { replace: true });
     }
   };
 
   return (
-    <div className="min-h-screen bg-transparent flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full">
-        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-            <p className="text-white/80">Sign in to your account</p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center py-12">
+      <div className="max-w-md w-full bg-white/10 p-8 rounded-lg backdrop-blur">
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+        <h2 className="text-3xl font-bold text-white mb-4">Login</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-white/90 mb-1">
-                Phone Number
-              </label>
+        {error && (
+          <p className="p-3 bg-red-300 text-red-900 rounded-md">{error}</p>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* Country code + number */}
+          <div>
+            <label className="text-white text-sm mb-1 block">Mobile Number</label>
+            <div className="flex gap-2">
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                className="w-40 p-2 rounded-md bg-white text-black"
+              >
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+              </select>
+
               <input
                 type="tel"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                pattern="[0-9]{10}"
-                maxLength={10}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
-                placeholder="Enter 10-digit number"
+                value={localPhone}
+                onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, ''))}
+                placeholder="9876543210"
+                className="flex-1 p-2 rounded-md bg-white text-black"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-white/90 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
-                placeholder="••••••••"
-              />
-            </div>
+            <p className="text-white/70 text-xs mt-1">
+              Login as: <span className="font-semibold">{fullNumber}</span>
+            </p>
+          </div>
+
+          {/* Password */}
+          <div className="relative">
+            <label className="text-white text-sm mb-1 block">Password</label>
+            <input
+              type={showPwd ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full p-2 rounded-md bg-white text-black"
+            />
 
             <button
               type="button"
-              onClick={() => onNavigate('forgot-password')}
-              className="text-sm text-[#C8A962] hover:text-[#0B1D39]"
+              className="absolute right-2 top-9 text-xs text-black"
+              onClick={() => setShowPwd((s) => !s)}
             >
-              Forgot Password?
+              {showPwd ? 'Hide' : 'Show'}
             </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#C8A962] text-white py-3 rounded-lg hover:bg-[#C8A962] transition-colors font-semibold disabled:opacity-50"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-white/80">
-              Don't have an account?{' '}
-              <button
-                onClick={() => onNavigate('signup')}
-                className="text-[#C8A962] hover:text-[#0B1D39] font-semibold"
-              >
-                Create Account
-              </button>
-            </p>
           </div>
-        </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#C8A962] text-white py-3 rounded-lg mt-3"
+          >
+            {loading ? 'Signing in…' : 'Sign In'}
+          </button>
+        </form>
+
+        <p className="text-white mt-6 text-center">
+          Don’t have an account?{' '}
+          <button className="text-[#C8A962]" onClick={() => onNavigate('signup')}>
+            Sign Up
+          </button>
+        </p>
       </div>
     </div>
   );

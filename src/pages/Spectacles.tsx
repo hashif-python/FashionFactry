@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { ProductCard } from '../components/ProductCard';
-import { supabase, Product } from '../lib/supabase';
 
 interface SpectaclesProps {
   onNavigate: (page: string, productId?: string) => void;

@@ -1,245 +1,179 @@
-import { useEffect, useState } from 'react';
-import { ShoppingCart, User, Search, Menu, X, Heart } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState, useRef } from "react";
+import { ShoppingCart, User, Search, Menu, X, Heart } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
-  onNavigate: (page: string) => void;
   cartItemCount: number;
   wishlistCount: number;
 }
 
-export const Header = ({ onNavigate, cartItemCount, wishlistCount }: HeaderProps) => {
+export const Header = ({ cartItemCount, wishlistCount }: HeaderProps) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Turn background green on scroll
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+
+  /* ─── Scroll Background Effect ───────────────────────────── */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  /* ─── Auto-close dropdown when clicking outside ─────────── */
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    if (userMenuOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [userMenuOpen]);
+
+  /* ─── Smooth animated dropdown styles ───────────────────── */
+  const dropdownBase =
+    "absolute right-0 mt-3 w-56 rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden z-[1000] animate-fade-slide-down";
+
+  const dropdownItem =
+    "px-4 py-3 text-left w-full hover:bg-gray-100 text-gray-800 transition-all flex flex-col";
+
+  const headerBg = scrolled || mobileMenuOpen ? "bg-[#2D5550] shadow-md" : "bg-transparent";
+
+  /* ─── Logout ─────────────────────────────────────────────── */
   const handleSignOut = async () => {
     await signOut();
-    setUserMenuOpen(false);
-    onNavigate('home');
+    navigate("/");
   };
 
-  // Reusable icon button for perfect alignment
-  const IconBtn = ({
-    title,
-    children,
-    onClick,
-    className = '',
-  }: {
-    title: string;
-    children: React.ReactNode;
-    onClick?: () => void;
-    className?: string;
-  }) => (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`relative inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[#2D5550]/60 transition-colors group ${className}`}
-    >
-      {children}
-      <span className="pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] text-white/90 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-        {title}
-      </span>
-    </button>
-  );
-
-  // Apply green background when scrolled or when mobile menu is open
-  const headerBgClasses = (scrolled || mobileMenuOpen)
-    ? 'bg-[#2D5550] shadow-md'
-    : 'bg-transparent';
-
   return (
-    <header className={`sticky top-0 z-50 transition-colors duration-300 ${headerBgClasses}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Brand + Nav */}
-          <div className="flex items-center gap-8">
-            <button
-              onClick={() => onNavigate('home')}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-            >
-              <img src="/logo_smooth_128.png" alt="FashionFactry" className="h-12 w-auto" />
-              <span className="text-2xl font-bold text-[#C8A962] tracking-wide brand-font">
-                FashionFactry
-              </span>
-            </button>
+    <>
+      {/* HEADER */}
+      <header className={`sticky top-0 z-[999] ${headerBg} transition-colors duration-300`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
 
-            <nav className="hidden md:flex gap-8">
+            {/* BRAND */}
+            <div className="flex items-center gap-8">
               <button
-                onClick={() => onNavigate('home')}
-                className="text-white/90 hover:text-[#C8A962] font-medium transition-colors"
+                onClick={() => navigate("/")}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
               >
-                Home
+                <img src="/logo_smooth_128.png" className="h-12 w-auto" />
+                <span className="text-2xl font-bold text-[#C8A962]">FashionFactry</span>
               </button>
-              <button
-                onClick={() => onNavigate('watches')}
-                className="text-white/90 hover:text-[#C8A962] font-medium transition-colors"
-              >
-                Watches
-              </button>
-              <button
-                onClick={() => onNavigate('shoes')}
-                className="text-white/90 hover:text-[#C8A962] font-medium transition-colors"
-              >
-                Shoes
-              </button>
-              <button
-                onClick={() => onNavigate('spectacles')}
-                className="text-white/90 hover:text-[#C8A962] font-medium transition-colors"
-              >
-                Spectacles
-              </button>
-            </nav>
-          </div>
 
-          {/* Actions (aligned icons) */}
-          <div className="flex items-center gap-2">
-            {/* Search */}
-            <div className="hidden sm:block">
-              <IconBtn title="Search products">
-                <Search className="w-5 h-5 text-white/90" />
-              </IconBtn>
+              {/* Desktop Menu */}
+              <nav className="hidden md:flex gap-8">
+                <button onClick={() => navigate("/")} className="text-white/90 hover:text-[#C8A962]">Home</button>
+                <button onClick={() => navigate("/watches")} className="text-white/90 hover:text-[#C8A962]">Watches</button>
+                <button onClick={() => navigate("/shoes")} className="text-white/90 hover:text-[#C8A962]">Shoes</button>
+                <button onClick={() => navigate("/spectacles")} className="text-white/90 hover:text-[#C8A962]">Spectacles</button>
+              </nav>
             </div>
 
-            {/* Wishlist */}
-            <div className="hidden sm:block">
-              <IconBtn title="Wishlist" onClick={() => onNavigate('wishlist')}>
-                <Heart className="w-5 h-5 text-white/90" />
+            {/* ACTIONS */}
+            <div className="flex items-center gap-3">
+
+              <Search className="hidden sm:block w-5 h-5 text-white cursor-pointer" />
+
+              <div className="hidden sm:block cursor-pointer" onClick={() => navigate("/wishlist")}>
+                <Heart className="w-5 h-5 text-white" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#C8A962] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute bg-[#C8A962] text-white text-xs rounded-full px-2 py-1 -mt-6 ml-4">
                     {wishlistCount}
                   </span>
                 )}
-              </IconBtn>
-            </div>
+              </div>
 
-            {/* Cart */}
-            <IconBtn title="Cart" onClick={() => onNavigate('cart')}>
-              <ShoppingCart className="w-5 h-5 text-white/90" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#C8A962] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                  {cartItemCount}
-                </span>
-              )}
-            </IconBtn>
-
-            {/* Login / Account */}
-            {user ? (
-              <div className="relative">
-                <IconBtn title="Account" onClick={() => setUserMenuOpen(!userMenuOpen)}>
-                  <User className="w-5 h-5 text-white/90" />
-                </IconBtn>
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-2 animate-fade-in border border-[#3D6B64]">
-                    <button
-                      onClick={() => {
-                        onNavigate('account');
-                        setUserMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 hover:bg-[#F5F3ED] text-[#2C2C2C]"
-                    >
-                      My Account
-                    </button>
-                    <button
-                      onClick={() => {
-                        onNavigate('orders');
-                        setUserMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 hover:bg-[#F5F3ED] text-[#2C2C2C]"
-                    >
-                      Orders
-                    </button>
-                    <button
-                      onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 hover:bg-[#F5F3ED] text-red-600"
-                    >
-                      Logout
-                    </button>
-                  </div>
+              <div className="cursor-pointer relative" onClick={() => navigate("/cart")}>
+                <ShoppingCart className="w-5 h-5 text-white" />
+                {cartItemCount > 0 && (
+                  <span className="absolute bg-[#C8A962] text-white text-xs rounded-full px-2 py-1 -mt-6 ml-4">
+                    {cartItemCount}
+                  </span>
                 )}
               </div>
-            ) : (
-              <IconBtn title="Login" onClick={() => onNavigate('login')} className="hidden sm:inline-flex">
-                <User className="w-5 h-5 text-white/90" />
-              </IconBtn>
-            )}
 
-            {/* Mobile menu toggle */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-xl"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6 text-white/90" />
+              {/* ─── USER DROPDOWN ───────────────────────────── */}
+              {user ? (
+                <div className="relative" ref={userMenuRef}>
+                  <User
+                    className="w-6 h-6 text-white cursor-pointer"
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  />
+
+                  {userMenuOpen && (
+                    <div className={dropdownBase}>
+                      <button
+                        onClick={() => {
+                          navigate("/account");
+                          setUserMenuOpen(false);
+                        }}
+                        className={dropdownItem}
+                      >
+                        <span className="font-semibold">My Account</span>
+                        <span className="text-xs text-gray-500">View profile details</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigate("/orders");
+                          setUserMenuOpen(false);
+                        }}
+                        className={dropdownItem}
+                      >
+                        <span className="font-semibold">Orders</span>
+                        <span className="text-xs text-gray-500">Your order history</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          handleSignOut();
+                          setUserMenuOpen(false);
+                        }}
+                        className={`${dropdownItem} text-red-600`}
+                      >
+                        <span className="font-semibold">Logout</span>
+                        <span className="text-xs text-gray-500">Sign out safely</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <Menu className="w-6 h-6 text-white/90" />
+                <User className="w-6 h-6 text-white cursor-pointer" onClick={() => navigate("/login")} />
               )}
-            </button>
+
+              {/* ─── MOBILE NAV BUTTON ─────────────────────── */}
+              <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                {mobileMenuOpen ? <X className="w-6 h-6 text-white" /> : <Menu className="w-6 h-6 text-white" />}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile menu (keeps header green when open) */}
+      {/* MOBILE MENU OVERLAY */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#1A3A35] border-t border-[#2D5550] animate-slide-in">
-          <nav className="px-4 py-4 space-y-2">
-            <button
-              onClick={() => {
-                onNavigate('home');
-                setMobileMenuOpen(false);
-              }}
-              className="block w-full text-left py-2 text-white/90 hover:text-[#C8A962] font-medium"
-            >
-              Home
-            </button>
-            <button
-              onClick={() => {
-                onNavigate('watches');
-                setMobileMenuOpen(false);
-              }}
-              className="block w-full text-left py-2 text-white/90 hover:text-[#C8A962] font-medium"
-            >
-              Watches
-            </button>
-            <button
-              onClick={() => {
-                onNavigate('shoes');
-                setMobileMenuOpen(false);
-              }}
-              className="block w-full text-left py-2 text-white/90 hover:text-[#C8A962] font-medium"
-            >
-              Shoes
-            </button>
-            <button
-              onClick={() => {
-                onNavigate('spectacles');
-                setMobileMenuOpen(false);
-              }}
-              className="block w-full text-left py-2 text-white/90 hover:text-[#C8A962] font-medium"
-            >
-              Spectacles
-            </button>
-            <button
-              onClick={() => {
-                onNavigate('wishlist');
-                setMobileMenuOpen(false);
-              }}
-              className="block w-full text-left py-2 text-white/90 hover:text-[#C8A962] font-medium sm:hidden"
-            >
-              Wishlist
-            </button>
-          </nav>
+        <div className="fixed inset-0 bg-black/40 z-[998]" onClick={() => setMobileMenuOpen(false)} />
+      )}
+
+      {/* MOBILE MENU PANEL */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-[#1A3A35] fixed top-20 left-0 w-full z-[999] p-4 animate-fade-slide-down">
+          <button onClick={() => navigate("/")}>Home</button>
+          <button onClick={() => navigate("/watches")}>Watches</button>
+          <button onClick={() => navigate("/shoes")}>Shoes</button>
+          <button onClick={() => navigate("/spectacles")}>Spectacles</button>
+          <button onClick={() => navigate("/wishlist")}>Wishlist</button>
         </div>
       )}
-    </header>
+    </>
   );
 };

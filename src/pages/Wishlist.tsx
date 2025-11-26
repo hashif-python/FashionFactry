@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
-import { supabase, WishlistItem } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 interface WishlistProps {

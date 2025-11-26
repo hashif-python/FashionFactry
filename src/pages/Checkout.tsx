@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, CartItem, Product } from '../lib/supabase';
 import { Check } from 'lucide-react';
 
 interface CheckoutProps {

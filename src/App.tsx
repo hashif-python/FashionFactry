@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { supabase } from './lib/supabase';
+// src/App.tsx
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+
+import { AuthProvider } from './contexts/AuthContext';
+
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
-import { Toast } from './components/Toast';
 import { FeatureTicker } from './components/FeatureTicker';
-import { Wishlist } from './pages/Wishlist';
+import { Toast } from './components/Toast';
+
 import { Home } from './pages/Home';
 import { Watches } from './pages/Watches';
 import { Shoes } from './pages/Shoes';
@@ -18,206 +21,111 @@ import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Account } from './pages/Account';
 import { Orders } from './pages/Orders';
+import { Wishlist } from './pages/Wishlist';
+import { VerifyOtp } from './pages/VerifyOtp';
 
-type Page =
-  | 'home'
-  | 'watches'
-  | 'shoes'
-  | 'spectacles'
-  | 'product'
-  | 'cart'
-  | 'wishlist'
-  | 'checkout'
-  | 'login'
-  | 'signup'
-  | 'forgot-password'
-  | 'account'
-  | 'orders';
+import { RequireAuth, RequireAnon } from './routes/guards'; // <-- include both
 
-interface Toast {
-  message: string;
-  type: 'success' | 'error';
+// Scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [pathname]);
+  return null;
 }
 
-function AppContent() {
-  const { user } = useAuth();
-  const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [selectedProductId, setSelectedProductId] = useState<string>('');
-  const [cartItemCount, setCartItemCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
-  const [toast, setToast] = useState<Toast | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      fetchCartCount();
-      fetchWishlistCount();
-    } else {
-      setCartItemCount(0);
-      setWishlistCount(0);
-    }
-  }, [user]);
-
-  const fetchCartCount = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('cart_items')
-      .select('quantity')
-      .eq('user_id', user.id);
-
-    if (!error && data) {
-      const total = data.reduce((sum, item) => sum + item.quantity, 0);
-      setCartItemCount(total);
-    }
-  };
-
-  const fetchWishlistCount = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('wishlist_items')
-      .select('id')
-      .eq('user_id', user.id);
-
-    if (!error && data) {
-      setWishlistCount(data.length);
-    }
-  };
-
-  const handleNavigate = (page: Page, productId?: string) => {
-    setCurrentPage(page);
-    if (productId) {
-      setSelectedProductId(productId);
-    }
-    window.scrollTo(0, 0);
-  };
-
-  const handleAddToCart = async (productId: string, quantity: number = 1, variantId?: string) => {
-    if (!user) {
-      showToast('Please login to add items to cart', 'error');
-      handleNavigate('login');
-      return;
-    }
-
-    let query = supabase
-      .from('cart_items')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('product_id', productId);
-
-    if (variantId) {
-      query = query.eq('variant_id', variantId);
-    } else {
-      query = query.is('variant_id', null);
-    }
-
-    const { data: existingItem } = await query.maybeSingle();
-
-    if (existingItem) {
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity: existingItem.quantity + quantity })
-        .eq('id', existingItem.id);
-
-      if (!error) {
-        showToast('Cart updated successfully', 'success');
-        fetchCartCount();
-      }
-    } else {
-      const { error } = await supabase
-        .from('cart_items')
-        .insert({
-          user_id: user.id,
-          product_id: productId,
-          variant_id: variantId || null,
-          quantity,
-        });
-
-      if (!error) {
-        showToast('Added to cart successfully', 'success');
-        fetchCartCount();
-      } else {
-        showToast('Failed to add to cart', 'error');
-      }
-    }
-  };
-
-  const handleLoginSuccess = () => {
-    showToast('Logged in successfully', 'success');
-    handleNavigate('home');
-  };
-
-  const handleSignupSuccess = () => {
-    showToast('Account created successfully', 'success');
-    handleNavigate('home');
-  };
-
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
-  };
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'home':
-        return <Home onNavigate={handleNavigate} />;
-      case 'watches':
-        return <Watches onNavigate={handleNavigate} onAddToCart={handleAddToCart} />;
-      case 'shoes':
-        return <Shoes onNavigate={handleNavigate} onAddToCart={handleAddToCart} />;
-      case 'spectacles':
-        return <Spectacles onNavigate={handleNavigate} onAddToCart={handleAddToCart} />;
-      case 'product':
-        return (
-          <ProductDetail
-            productId={selectedProductId}
-            onNavigate={handleNavigate}
-            onAddToCart={handleAddToCart}
-          />
-        );
-      case 'cart':
-        return <Cart onNavigate={handleNavigate} />;
-      case 'wishlist':
-        return <Wishlist onNavigate={handleNavigate} onAddToCart={handleAddToCart} />;
-      case 'checkout':
-        return <Checkout onNavigate={handleNavigate} />;
-      case 'login':
-        return <Login onNavigate={handleNavigate} onLoginSuccess={handleLoginSuccess} />;
-      case 'signup':
-        return <Signup onNavigate={handleNavigate} onSignupSuccess={handleSignupSuccess} />;
-      case 'forgot-password':
-        return <ForgotPassword onNavigate={handleNavigate} />;
-      case 'account':
-        return <Account onNavigate={handleNavigate} />;
-      case 'orders':
-        return <Orders onNavigate={handleNavigate} />;
-      default:
-        return <Home onNavigate={handleNavigate} />;
-    }
-  };
+function AppShell() {
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const showToast = (message: string, type: 'success' | 'error') => setToast({ message, type });
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header onNavigate={handleNavigate} cartItemCount={cartItemCount} wishlistCount={wishlistCount} />
+      <Header />
       <FeatureTicker />
-      <main className="flex-1">{renderPage()}</main>
-      <Footer onNavigate={handleNavigate} />
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      <main className="flex-1">
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<Home />} />
+          <Route path="/watches" element={<Watches />} />
+          <Route path="/shoes" element={<Shoes />} />
+          <Route path="/spectacles" element={<Spectacles />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+
+          {/* Cart/Checkout (you can guard checkout if needed) */}
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+
+          {/* Anon-only */}
+          <Route
+            path="/login"
+            element={
+              <RequireAnon>
+                <Login />
+              </RequireAnon>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <RequireAnon>
+                <Signup />
+              </RequireAnon>
+            }
+          />
+          <Route
+            path="/verify-otp"
+            element={
+              <RequireAnon>
+                <VerifyOtp />
+              </RequireAnon>
+            }
+          />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          {/* Auth-only */}
+          <Route
+            path="/account"
+            element={
+              <RequireAuth>
+                <Account />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/orders"
+            element={
+              <RequireAuth>
+                <Orders />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/wishlist"
+            element={
+              <RequireAuth>
+                <Wishlist />
+              </RequireAuth>
+            }
+          />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      <Footer />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <BrowserRouter>
+        <ScrollToTop />
+        <AppShell />
+      </BrowserRouter>
     </AuthProvider>
   );
 }
-
-export default App;

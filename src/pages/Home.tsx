@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 interface HomeProps {
   onNavigate: (page: string) => void;
@@ -102,9 +103,10 @@ export const Home = ({ onNavigate }: HomeProps) => {
         {heroSlides.map((slide, index) => (
           <div
             key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'
+            className={`absolute inset-0 transition-opacity duration-1000 pointer-events-none ${index === currentSlide ? 'opacity-100' : 'opacity-0'
               }`}
           >
+
             <img
               src={slide.image}
               alt={slide.title}

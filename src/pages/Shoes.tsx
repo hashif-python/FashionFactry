@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { ProductCard } from '../components/ProductCard';
-import { supabase, Product } from '../lib/supabase';
 
 interface ShoesProps {
   onNavigate: (page: string, productId?: string) => void;
@@ -59,31 +58,28 @@ export const Shoes = ({ onNavigate, onAddToCart }: ShoesProps) => {
         <div className="flex gap-4 mb-6">
           <button
             onClick={() => setSelectedGender('all')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${
-              selectedGender === 'all'
-                ? 'bg-[#C8A962] text-white'
-                : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-            }`}
+            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${selectedGender === 'all'
+              ? 'bg-[#C8A962] text-white'
+              : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
+              }`}
           >
             All
           </button>
           <button
             onClick={() => setSelectedGender('men')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${
-              selectedGender === 'men'
-                ? 'bg-[#C8A962] text-white'
-                : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-            }`}
+            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${selectedGender === 'men'
+              ? 'bg-[#C8A962] text-white'
+              : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
+              }`}
           >
             Men
           </button>
           <button
             onClick={() => setSelectedGender('women')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${
-              selectedGender === 'women'
-                ? 'bg-[#C8A962] text-white'
-                : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-            }`}
+            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${selectedGender === 'women'
+              ? 'bg-[#C8A962] text-white'
+              : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
+              }`}
           >
             Women
           </button>
