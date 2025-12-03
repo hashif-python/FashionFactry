@@ -1,21 +1,33 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { apiFetch, setLoggingOut } from "../lib/api";
+import { apiFetch, apiPost, setLoggingOut } from "../lib/api";
 
 interface AuthContextType {
   user: any;
   loading: boolean;
   logout: () => Promise<void>;
   signIn: (mobile: string, password: string) => Promise<{ error?: any }>;
+
+  // ⭐ Added
+  verifyOtp: (payload: any) => Promise<{ data?: any; error?: any }>;
+  resendOtp: (payload: any) => Promise<{ data?: any; error?: any }>;
+  setUser: (u: any) => void;
+
   wishlistCount: number;
   cartCount: number;
   setWishlistCount: (n: number) => void;
   setCartCount: (n: number) => void;
 }
+
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   logout: async () => { },
   signIn: async () => ({ error: null }),
+
+  verifyOtp: async () => ({ error: null }),
+  resendOtp: async () => ({ error: null }),
+  setUser: () => { },
+
   wishlistCount: 0,
   cartCount: 0,
   setWishlistCount: () => { },
@@ -29,33 +41,22 @@ export const AuthProvider = ({ children }: any) => {
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
 
-  function getWishlistCount(wl: any): number {
-    if (!wl) return 0;
-    if (Array.isArray(wl)) return wl.length;
-    if (wl.items && Array.isArray(wl.items)) return wl.items.length;
-    if (wl.wishlist_id) return 1;
-    return 0;
-  }
-
-  function getCartCount(cart: any): number {
-    if (!cart) return 0;
-    if (Array.isArray(cart)) return cart.length;
-    if (cart.items && Array.isArray(cart.items)) return cart.items.length;
-    if (cart.cart_id) return 1;
-    return 0;
-  }
-
+  /* -------------------------------------------
+      GET COUNTS
+  ------------------------------------------- */
   const reloadCounts = async () => {
     try {
       const wl = await apiFetch("wishlist/");
-      setWishlistCount(getWishlistCount(wl));
-
       const cart = await apiFetch("cart/");
-      setCartCount(getCartCount(cart));
+
+      setWishlistCount(Array.isArray(wl) ? wl.length : wl?.items?.length || 0);
+      setCartCount(Array.isArray(cart) ? cart.length : cart?.items?.length || 0);
     } catch { }
   };
 
-  // INITIAL LOAD
+  /* -------------------------------------------
+      LOAD USER INITIALLY
+  ------------------------------------------- */
   useEffect(() => {
     const init = async () => {
       try {
@@ -71,31 +72,25 @@ export const AuthProvider = ({ children }: any) => {
     init();
   }, []);
 
-  /* ----------------------------
-       LOGOUT (fixed)
-  ----------------------------- */
+  /* -------------------------------------------
+      LOGOUT
+  ------------------------------------------- */
   const logout = async () => {
     setLoggingOut(true);
-
     setUser(null);
 
     try {
       await apiFetch("logout/", { method: "POST" });
     } catch { }
 
-    // Stop refresh loops
-    window.localStorage.setItem("force_logout", "1");
-
     window.location.replace("/login");
   };
 
-  /* ----------------------------
-       LOGIN FIX — return {error}
-  ----------------------------- */
+  /* -------------------------------------------
+      LOGIN
+  ------------------------------------------- */
   const signIn = async (mobile: string, password: string) => {
-    console.log("Signing in with:", mobile, password);
     setLoading(true);
-
     try {
       const data = await apiFetch("login/", {
         method: "POST",
@@ -104,12 +99,36 @@ export const AuthProvider = ({ children }: any) => {
 
       setUser(data.user || data);
       await reloadCounts();
-
       return { error: null };
+
     } catch (e: any) {
       return { error: e };
     } finally {
       setLoading(false);
+    }
+  };
+
+  /* -------------------------------------------
+      ⭐ VERIFY OTP (NEW)
+  ------------------------------------------- */
+  const verifyOtp = async (payload: any) => {
+    try {
+      const data = await apiPost("verify-otp/", payload);
+      return { data, error: null };
+    } catch (e: any) {
+      return { error: e };
+    }
+  };
+
+  /* -------------------------------------------
+      ⭐ RESEND OTP (NEW)
+  ------------------------------------------- */
+  const resendOtp = async (payload: any) => {
+    try {
+      const data = await apiPost("resend-otp/", payload);
+      return { data, error: null };
+    } catch (e: any) {
+      return { error: e };
     }
   };
 
@@ -120,6 +139,11 @@ export const AuthProvider = ({ children }: any) => {
         loading,
         logout,
         signIn,
+
+        verifyOtp,
+        resendOtp,
+        setUser,
+
         wishlistCount,
         cartCount,
         setWishlistCount,
