@@ -29,6 +29,10 @@ import { WalletPage } from './pages/Wallet';
 import { AddMoneyPage } from './pages/AddMoney';
 import { WalletTransactionsPage } from './pages/WalletTransactions';
 import { Toaster } from 'react-hot-toast';
+import { About } from "./pages/About";
+import { Terms } from "./pages/Terms";
+import { Privacy } from "./pages/Privacy";
+import { Contact } from './pages/Contact';
 
 // Scroll to top on navigation
 function ScrollToTop() {
@@ -146,6 +150,10 @@ function AppShell() {
           <Route path="/wallet/add-money" element={<AddMoneyPage />} />
           <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
 
+          <Route path="/about" element={<About />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/contact" element={<Contact />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
