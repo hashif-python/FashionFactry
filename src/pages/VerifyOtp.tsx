@@ -2,18 +2,18 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { apiPost } from "../lib/api";
-import toast from "react-hot-toast"; // ✅ FIXED missing import
+import toast from "react-hot-toast";
 
 export const VerifyOtp = () => {
     const { verifyOtp, resendOtp, setUser } = useAuth();
     const navigate = useNavigate();
 
     const [otp, setOtp] = useState("");
-    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [resending, setResending] = useState(false);
+    const [error, setError] = useState("");
 
     const [timer, setTimer] = useState(60);
-    const [resending, setResending] = useState(false);
 
     // DATA STORED DURING SIGNUP
     const fullName = sessionStorage.getItem("ff_full_name");
@@ -33,7 +33,7 @@ export const VerifyOtp = () => {
     }, [timer]);
 
     /* ------------------------------------
-              Clear signup session data
+              Clear signup session
     -------------------------------------- */
     const clearSession = () => {
         sessionStorage.removeItem("ff_full_name");
@@ -43,36 +43,38 @@ export const VerifyOtp = () => {
     };
 
     /* ------------------------------------
-                  Submit OTP
+                Submit OTP
     -------------------------------------- */
     const submit = async (e) => {
         e.preventDefault();
         setError("");
         setLoading(true);
-
+        console.log("Verifying OTP for:", { email, phone, otp });
         const payload = {
             email: email || null,
             mobile: phone || null,
             otp: otp,
         };
 
-        const { data, error: err } = await verifyOtp(payload);
+        const { data, error: verifyError } = await verifyOtp(payload);
 
-        if (err) {
-            setError(err.message);
+        if (verifyError) {
             setLoading(false);
+            setError(verifyError.message || "OTP verification failed");
+            toast.error("Invalid OTP");
             return;
         }
 
-        // CASE A — Existing user → login
+        // CASE A — Existing user → login success
         if (data?.user_exists) {
             setUser(data.user);
             clearSession();
+            toast.success("OTP Verified");
             navigate("/", { replace: true });
             return;
         }
 
-        // CASE B — New user → register
+        // CASE B — New user → register automatically
         try {
             await apiPost("register/", {
                 full_name: fullName,
@@ -83,15 +85,11 @@ export const VerifyOtp = () => {
 
             clearSession();
 
-            // 🔥 Show success toast (react-hot-toast)
             toast.success("Account created successfully. You can now log in.");
-
-            // Redirect to login
             navigate("/login", { replace: true });
-            return;
 
-        } catch (e) {
-            setError("Registration failed: " + e.message);
+        } catch (err: any) {
+            setError("Registration failed: " + err.message);
         }
 
         setLoading(false);
@@ -103,18 +101,20 @@ export const VerifyOtp = () => {
     const handleResend = async () => {
         setResending(true);
         setError("");
+
         const payload = {
             email: email || null,
             mobile: phone || null,
-
         };
 
-        try {
-            await resendOtp(payload);
+        const { error: resendError } = await resendOtp(payload);
+
+        if (resendError) {
+            setError(resendError.message || "Failed to resend OTP");
+            toast.error("Failed to resend");
+        } else {
             setTimer(60);
             toast.success("OTP sent again.");
-        } catch (e) {
-            setError("Failed to resend OTP");
         }
 
         setResending(false);
