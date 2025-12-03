@@ -49,13 +49,15 @@ export const VerifyOtp = () => {
         e.preventDefault();
         setError("");
         setLoading(true);
-        console.log("Verifying OTP for:", { email, phone, otp });
+
         const payload = {
             email: email || null,
             mobile: phone || null,
             otp: otp,
         };
-
+        console.log("verifyOtp:", verifyOtp);
+        console.log("resendOtp:", resendOtp);
+        console.log("setUser:", setUser);
         const { data, error: verifyError } = await verifyOtp(payload);
 
         if (verifyError) {
