@@ -1,105 +1,95 @@
-import { useState, useEffect } from 'react';
-import { ProductCard } from '../components/ProductCard';
+import { useEffect, useState } from "react";
+import { apiGet } from "../lib/api";
+import { ProductCard } from "../components/ProductCard";
+import { useNavigate } from "react-router-dom";
 
-interface ShoesProps {
-  onNavigate: (page: string, productId?: string) => void;
-  onAddToCart: (productId: string) => void;
-}
-
-export const Shoes = ({ onNavigate, onAddToCart }: ShoesProps) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [selectedGender, setSelectedGender] = useState<'all' | 'men' | 'women'>('all');
+export const Shoes = () => {
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [selectedGender, setSelectedGender] = useState("all");
+
+  const navigate = useNavigate();
+
   useEffect(() => {
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  useEffect(() => {
-    filterProducts();
-  }, [products, selectedGender]);
-
-  const fetchProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*, categories!inner(slug)')
-      .eq('categories.slug', 'shoes');
-
-    if (!error && data) {
-      setProducts(data as unknown as Product[]);
+  const loadProducts = async () => {
+    try {
+      const data = await apiGet("products/shoes/");
+      setProducts(data);
+    } catch (err) {
+      console.error("Error loading shoes:", err);
     }
     setLoading(false);
   };
 
-  const filterProducts = () => {
-    let filtered = [...products];
-
-    if (selectedGender !== 'all') {
-      filtered = filtered.filter((p) => p.gender === selectedGender);
-    }
-
-    setFilteredProducts(filtered);
+  // Fake cart handler (same as watches)
+  const handleAddToCart = (id: number) => {
+    console.log("Added to cart:", id);
   };
 
-  if (loading) {
+  // ✔ same method signature as Watches.tsx
+  const handleProductClick = (id: number) => {
+    navigate(`/product/${id}?type=shoes`);
+  };
+
+  const processProducts = () => {
+    let result = [...products];
+
+    if (selectedGender !== "all") {
+      result = result.filter((p) => p.gender === selectedGender);
+    }
+
+    return result;
+  };
+
+  const filtered = processProducts();
+
+  if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-white">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading...
       </div>
     );
-  }
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-white mb-8">Shoes</h1>
+    <div className="min-h-screen py-8 text-white">
+      <div className="max-w-7xl mx-auto px-4">
 
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setSelectedGender('all')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${selectedGender === 'all'
-              ? 'bg-[#C8A962] text-white'
-              : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-              }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setSelectedGender('men')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${selectedGender === 'men'
-              ? 'bg-[#C8A962] text-white'
-              : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-              }`}
-          >
-            Men
-          </button>
-          <button
-            onClick={() => setSelectedGender('women')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${selectedGender === 'women'
-              ? 'bg-[#C8A962] text-white'
-              : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-              }`}
-          >
-            Women
-          </button>
+        <h1 className="text-4xl font-bold mb-6">Shoes</h1>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          {["all", "men", "women"].map((g) => (
+            <button
+              key={g}
+              onClick={() => setSelectedGender(g)}
+              className={`px-6 py-2 rounded-xl 
+              ${selectedGender === g ? "bg-[#C8A962]" : "bg-white/20"}`}
+            >
+              {g === "all" ? "All" : g[0].toUpperCase() + g.slice(1)}
+            </button>
+          ))}
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {filteredProducts.map((product) => (
+        {/* Product Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filtered.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
-              onProductClick={(id) => onNavigate('product', id)}
-              onAddToCart={onAddToCart}
+              onProductClick={handleProductClick}   // ✔ same as Watches.tsx
+              onAddToCart={handleAddToCart}         // ✔ avoid errors
             />
           ))}
         </div>
 
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-xl text-white/70">No products found.</p>
-          </div>
+        {filtered.length === 0 && (
+          <p className="text-center text-white/70 mt-12">
+            No products found.
+          </p>
         )}
       </div>
     </div>

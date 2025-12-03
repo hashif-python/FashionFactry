@@ -2,15 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import { ShoppingCart, User, Search, Menu, X, Heart } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
-interface HeaderProps {
-  cartItemCount: number;
-  wishlistCount: number;
-}
-
-export const Header = ({ cartItemCount, wishlistCount }: HeaderProps) => {
-  const { user, signOut } = useAuth();
+export const Header = () => {
   const navigate = useNavigate();
+  const { user, logout, wishlistCount, cartCount } = useAuth();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -18,15 +14,14 @@ export const Header = ({ cartItemCount, wishlistCount }: HeaderProps) => {
 
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
-  /* ─── Scroll Background Effect ───────────────────────────── */
+  /* ─── Scroll background ─────────────────────── */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* ─── Auto-close dropdown when clicking outside ─────────── */
+  /* ─── Click outside to close menu ───────────── */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -37,89 +32,134 @@ export const Header = ({ cartItemCount, wishlistCount }: HeaderProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [userMenuOpen]);
 
-  /* ─── Smooth animated dropdown styles ───────────────────── */
-  const dropdownBase =
-    "absolute right-0 mt-3 w-56 rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden z-[1000] animate-fade-slide-down";
-
-  const dropdownItem =
-    "px-4 py-3 text-left w-full hover:bg-gray-100 text-gray-800 transition-all flex flex-col";
-
   const headerBg = scrolled || mobileMenuOpen ? "bg-[#2D5550] shadow-md" : "bg-transparent";
 
-  /* ─── Logout ─────────────────────────────────────────────── */
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     navigate("/");
+    toast.success("Logged out successfully");
   };
+
+  const IconWithLabel = ({
+    title,
+    onClick,
+    children,
+    hideOnMobile = false,
+  }: {
+    title: string;
+    onClick?: () => void;
+    children: React.ReactNode;
+    hideOnMobile?: boolean;
+  }) => (
+    <button
+      onClick={onClick}
+      className={`relative inline-flex items-center justify-center 
+                  rounded-xl transition group
+                  ${hideOnMobile ? "hidden sm:flex" : "flex"}
+                  w-10 h-10 sm:w-11 sm:h-11`}
+    >
+      {children}
+      <span
+        className="pointer-events-none absolute -bottom-5 left-1/2 
+                   -translate-x-1/2 text-[10px] sm:text-[11px]
+                   text-white/90 opacity-0 group-hover:opacity-100 
+                   transition-opacity whitespace-nowrap"
+      >
+        {title}
+      </span>
+    </button>
+  );
 
   return (
     <>
-      {/* HEADER */}
-      <header className={`sticky top-0 z-[999] ${headerBg} transition-colors duration-300`}>
+      <header className={`sticky top-0 z-[999] ${headerBg} transition duration-300`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
 
-            {/* BRAND */}
-            <div className="flex items-center gap-8">
+            {/* Brand */}
+            <div className="flex items-center gap-3 sm:gap-8">
               <button
                 onClick={() => navigate("/")}
-                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                className="flex items-center gap-3 hover:opacity-80 transition"
               >
-                <img src="/logo_smooth_128.png" className="h-12 w-auto" />
-                <span className="text-2xl font-bold text-[#C8A962]">FashionFactry</span>
+                <img src="/logo_smooth_128.png" className="h-10 w-auto sm:h-12" />
+                <span className="text-xl sm:text-2xl font-bold text-[#C8A962]">
+                  FashionFactry
+                </span>
               </button>
 
-              {/* Desktop Menu */}
+              {/* Nav */}
               <nav className="hidden md:flex gap-8">
-                <button onClick={() => navigate("/")} className="text-white/90 hover:text-[#C8A962]">Home</button>
-                <button onClick={() => navigate("/watches")} className="text-white/90 hover:text-[#C8A962]">Watches</button>
-                <button onClick={() => navigate("/shoes")} className="text-white/90 hover:text-[#C8A962]">Shoes</button>
-                <button onClick={() => navigate("/spectacles")} className="text-white/90 hover:text-[#C8A962]">Spectacles</button>
+                <button onClick={() => navigate("/")} className="text-white/90 hover:text-[#C8A962]">
+                  Home
+                </button>
+                <button onClick={() => navigate("/watches")} className="text-white/90 hover:text-[#C8A962]">
+                  Watches
+                </button>
+                <button onClick={() => navigate("/shoes")} className="text-white/90 hover:text-[#C8A962]">
+                  Shoes
+                </button>
+                <button onClick={() => navigate("/spectacles")} className="text-white/90 hover:text-[#C8A962]">
+                  Spectacles
+                </button>
               </nav>
             </div>
 
             {/* ACTIONS */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
 
-              <Search className="hidden sm:block w-5 h-5 text-white cursor-pointer" />
+              {/* Search */}
+              <IconWithLabel title="Search" hideOnMobile>
+                <Search className="w-5 h-5 text-white cursor-pointer" />
+              </IconWithLabel>
 
-              <div className="hidden sm:block cursor-pointer" onClick={() => navigate("/wishlist")}>
-                <Heart className="w-5 h-5 text-white" />
-                {wishlistCount > 0 && (
-                  <span className="absolute bg-[#C8A962] text-white text-xs rounded-full px-2 py-1 -mt-6 ml-4">
-                    {wishlistCount}
-                  </span>
-                )}
-              </div>
+              {/* Wishlist */}
+              <IconWithLabel title="Wishlist" onClick={() => navigate("/wishlist")}>
+                <div className="relative">
+                  <Heart className="w-5 h-5 text-white" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#C8A962] text-white 
+                                    text-[10px] rounded-full px-1.5 py-0.5">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </div>
+              </IconWithLabel>
 
-              <div className="cursor-pointer relative" onClick={() => navigate("/cart")}>
-                <ShoppingCart className="w-5 h-5 text-white" />
-                {cartItemCount > 0 && (
-                  <span className="absolute bg-[#C8A962] text-white text-xs rounded-full px-2 py-1 -mt-6 ml-4">
-                    {cartItemCount}
-                  </span>
-                )}
-              </div>
+              {/* Cart */}
+              <IconWithLabel title="Cart" onClick={() => navigate("/cart")}>
+                <div className="relative">
+                  <ShoppingCart className="w-5 h-5 text-white" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#C8A962] 
+                                    text-white text-[10px] rounded-full px-1.5 py-0.5">
+                      {cartCount}
+                    </span>
+                  )}
+                </div>
+              </IconWithLabel>
 
-              {/* ─── USER DROPDOWN ───────────────────────────── */}
+              {/* User */}
               {user ? (
                 <div className="relative" ref={userMenuRef}>
-                  <User
-                    className="w-6 h-6 text-white cursor-pointer"
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  />
+                  <IconWithLabel title="Account">
+                    <User
+                      className="w-6 h-6 text-white cursor-pointer"
+                      onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    />
+                  </IconWithLabel>
 
                   {userMenuOpen && (
-                    <div className={dropdownBase}>
+                    <div className="absolute right-0 mt-3 w-56 rounded-xl bg-white shadow-2xl 
+                                    border border-gray-200 overflow-hidden z-[1000]">
                       <button
                         onClick={() => {
                           navigate("/account");
                           setUserMenuOpen(false);
                         }}
-                        className={dropdownItem}
+                        className="px-4 py-3 hover:bg-gray-100 w-full text-left"
                       >
-                        <span className="font-semibold">My Account</span>
-                        <span className="text-xs text-gray-500">View profile details</span>
+                        My Account
                       </button>
 
                       <button
@@ -127,51 +167,60 @@ export const Header = ({ cartItemCount, wishlistCount }: HeaderProps) => {
                           navigate("/orders");
                           setUserMenuOpen(false);
                         }}
-                        className={dropdownItem}
+                        className="px-4 py-3 hover:bg-gray-100 w-full text-left"
                       >
-                        <span className="font-semibold">Orders</span>
-                        <span className="text-xs text-gray-500">Your order history</span>
+                        Orders
                       </button>
 
                       <button
-                        onClick={() => {
-                          handleSignOut();
-                          setUserMenuOpen(false);
-                        }}
-                        className={`${dropdownItem} text-red-600`}
+                        onClick={handleSignOut}
+                        className="px-4 py-3 hover:bg-gray-100 w-full text-left text-red-600"
                       >
-                        <span className="font-semibold">Logout</span>
-                        <span className="text-xs text-gray-500">Sign out safely</span>
+                        Logout
                       </button>
                     </div>
                   )}
                 </div>
               ) : (
-                <User className="w-6 h-6 text-white cursor-pointer" onClick={() => navigate("/login")} />
+                <IconWithLabel title="Login" onClick={() => navigate("/login")}>
+                  <User className="w-6 h-6 text-white cursor-pointer" />
+                </IconWithLabel>
               )}
 
-              {/* ─── MOBILE NAV BUTTON ─────────────────────── */}
-              <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-                {mobileMenuOpen ? <X className="w-6 h-6 text-white" /> : <Menu className="w-6 h-6 text-white" />}
+              {/* Mobile menu */}
+              <button
+                className="flex sm:hidden p-2"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-7 h-7 text-white" />
+                ) : (
+                  <Menu className="w-7 h-7 text-white" />
+                )}
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* MOBILE MENU OVERLAY */}
+      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/40 z-[998]" onClick={() => setMobileMenuOpen(false)} />
-      )}
-
-      {/* MOBILE MENU PANEL */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-[#1A3A35] fixed top-20 left-0 w-full z-[999] p-4 animate-fade-slide-down">
-          <button onClick={() => navigate("/")}>Home</button>
-          <button onClick={() => navigate("/watches")}>Watches</button>
-          <button onClick={() => navigate("/shoes")}>Shoes</button>
-          <button onClick={() => navigate("/spectacles")}>Spectacles</button>
-          <button onClick={() => navigate("/wishlist")}>Wishlist</button>
+        <div className="md:hidden bg-[#1A3A35] fixed top-20 left-0 w-full z-[999] p-4">
+          <button className="block text-white py-3 text-lg" onClick={() => navigate("/")}>
+            Home
+          </button>
+          <button className="block text-white py-3 text-lg" onClick={() => navigate("/watches")}>
+            Watches
+          </button>
+          <button className="block text-white py-3 text-lg" onClick={() => navigate("/shoes")}>
+            Shoes
+          </button>
+          <button className="block text-white py-3 text-lg" onClick={() => navigate("/spectacles")}>
+            Spectacles
+          </button>
+          <button className="block text-white py-3 text-lg" onClick={() => navigate("/wishlist")}>
+            Wishlist
+          </button>
         </div>
       )}
     </>

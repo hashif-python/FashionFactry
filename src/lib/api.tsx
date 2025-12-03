@@ -1,63 +1,133 @@
-// src/lib/api.ts
-
-// Base URL from .env
-export const API_BASE =
-  (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/")
-    .replace(/\/+$/, "");
-
-async function safeJson(res: Response) {
-  const text = await res.text();
-  try {
-    return text ? JSON.parse(text) : {};
-  } catch {
-    return {};
-  }
-}
+import { API_BASE } from "./constants";
 
 function normalizePath(path: string) {
-  let p = String(path).trim();
-  if (/^https?:\/\//i.test(p)) {
-    try {
-      const u = new URL(p);
-      p = u.pathname;
-    } catch { }
-  }
-  return `/${p.replace(/^\/+/, "").replace(/\/+$/, "")}/`;
+  if (!path.startsWith("/")) path = "/" + path;
+  return path.replace(/\/{2,}/g, "/");
 }
 
-export async function apiFetch<T = any>(path: string, options: RequestInit = {}) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
-  };
+let isRefreshing = false;
+
+// NEW: Global logout flag
+export let isLoggingOut = false;
+export function setLoggingOut(value: boolean) {
+  isLoggingOut = value;
+}
+
+export async function apiFetch(path: string, options: RequestInit = {}) {
+
+  // if (isLoggingOut) {
+  //   throw { status: 401, message: "Logging out" };
+  // }
+
 
   const url = `${API_BASE}${normalizePath(path)}`;
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-    credentials: "include", // critical for HttpOnly cookie auth
-  });
+  const headers = options.headers
+    ? new Headers(options.headers)
+    : new Headers();
 
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    const msg =
-      data?.message ||
-      data?.detail ||
-      data?.error ||
-      `HTTP ${res.status}`;
-    throw new Error(msg);
+  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
   }
 
-  return data as T;
+  options.credentials = "include";
+  options.headers = headers;
+
+  let res = await fetch(url, options);
+
+  // ---------------------------------------------------
+  // ⭐ ACCESS TOKEN EXPIRED → TRY REFRESH TOKEN
+  // ---------------------------------------------------
+  if (res.status === 401) {
+
+    // ⛔ Prevent refresh loops during logout
+    if (isLoggingOut) {
+      throw { status: 401, message: "Logged out" };
+    }
+
+    if (!isRefreshing) {
+      isRefreshing = true;
+
+      const refreshRes = await fetch(
+        `${API_BASE}${normalizePath("refresh-token/")}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      isRefreshing = false;
+
+      if (refreshRes.status !== 200) {
+
+        // Avoid infinite refresh attempts
+        isLoggingOut = true;
+
+        await fetch(`${API_BASE}${normalizePath("logout/")}`, {
+          method: "POST",
+          credentials: "include",
+        });
+
+
+        throw { status: 401, message: "Session expired" };
+      }
+
+      // ⭐ REFRESH SUCCESS → retry original
+      res = await fetch(url, options);
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      res = await fetch(url, options);
+    }
+  }
+
+  // ---------------------------------------------------
+  // Handle Errors
+  // ---------------------------------------------------
+  if (!res.ok) {
+    const errorText = await res.text();
+    let parsedError: any = null;
+    try {
+      parsedError = JSON.parse(errorText);
+    } catch { }
+
+    throw {
+      status: res.status,
+      message: parsedError?.message || errorText,
+    };
+  }
+
+  // ---------------------------------------------------
+  // JSON only if exists
+  // ---------------------------------------------------
+  const contentType = res.headers.get("Content-Type") || "";
+  if (contentType.includes("application/json")) {
+    return await res.json();
+  }
+
+  return null;
 }
 
-export const apiGet = <T = any>(path: string) =>
-  apiFetch<T>(path, { method: "GET" });
+// ----------------------------------
+// Legacy compatibility
+// ----------------------------------
+export async function apiGet(path: string) {
+  return apiFetch(path, { method: "GET" });
+}
 
-export const apiPost = <T = any>(path: string, body: any) =>
-  apiFetch<T>(path, {
+export async function apiPost(path: string, body: any = {}) {
+  return apiFetch(path, {
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export async function apiPut(path: string, body: any = {}) {
+  return apiFetch(path, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiDelete(path: string) {
+  return apiFetch(path, { method: "DELETE" });
+}

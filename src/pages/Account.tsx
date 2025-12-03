@@ -18,7 +18,7 @@ export const Account = () => {
 
   const fetchProfile = async () => {
     try {
-      const data = await apiFetch("/me", { method: "GET" });
+      const data = await apiFetch("/me/", { method: "GET" });
       setProfile(data?.user || data);
     } catch (err) {
       console.error("Failed to load /me", err);
@@ -112,6 +112,21 @@ export const Account = () => {
               >
                 <p className="font-semibold text-white">Shopping Cart</p>
                 <p className="text-sm text-white/80">View items in your cart</p>
+              </button>
+
+              <button
+                onClick={() => navigate("/address")}
+                className="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:border-[#C8A962]"
+              >
+                <p className="font-semibold text-white">My Addresses</p>
+                <p className="text-sm text-white/80">Manage your saved addresses</p>
+              </button>
+              <button
+                onClick={() => navigate("/wallet")}
+                className="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:border-[#C8A962]"
+              >
+                <p className="font-semibold text-white">My Wallet</p>
+                <p className="text-sm text-white/80">View and manage your wallet balance</p>
               </button>
 
               <button

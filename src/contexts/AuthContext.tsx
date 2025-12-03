@@ -1,197 +1,115 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
-import { apiFetch } from "../lib/api";
-
-export interface BackendUser {
-  id: string;
-  full_name: string;
-  email?: string;
-  phone?: string;
-}
-
-interface AuthError {
-  message: string;
-}
+import { createContext, useContext, useEffect, useState } from "react";
+import { apiFetch, setLoggingOut } from "../lib/api";
 
 interface AuthContextType {
-  user: BackendUser | null;
+  user: any;
   loading: boolean;
-
-  signUp: (
-    email: string,
-    password: string,
-    fullName: string,
-    phone: string
-  ) => Promise<{ error: AuthError | null }>;
-
-  signIn: (
-    identifier: string,
-    password: string
-  ) => Promise<{ error: AuthError | null }>;
-
-  signOut: () => Promise<void>;
-
-  verifyOtp: (
-    target: string,
-    code: string
-  ) => Promise<{ error: AuthError | null }>;
-
-  resendOtp: (target: string) => Promise<{ error: AuthError | null }>;
+  logout: () => Promise<void>;
+  signIn: (mobile: string, password: string) => Promise<{ error?: any }>;
+  wishlistCount: number;
+  cartCount: number;
+  setWishlistCount: (n: number) => void;
+  setCartCount: (n: number) => void;
 }
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  logout: async () => { },
+  signIn: async () => ({ error: null }),
+  wishlistCount: 0,
+  cartCount: 0,
+  setWishlistCount: () => { },
+  setCartCount: () => { },
+});
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-/* ------------------------------------------------------
-   SAFE API WRAPPER WITH AUTO TOKEN REFRESH
------------------------------------------------------- */
-async function safeApi(path: string, options?: RequestInit) {
-  try {
-    return await apiFetch(path, options);
-  } catch (e: any) {
-    if (e.message.includes("401") || e.message.includes("Unauthorized")) {
-      try {
-        await apiFetch("refresh", { method: "POST" });
-        return await apiFetch(path, options);
-      } catch (refreshErr) {
-        throw refreshErr;
-      }
-    }
-    throw e;
-  }
-}
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<BackendUser | null>(null);
+export const AuthProvider = ({ children }: any) => {
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /* ------------------------------------------------------
-     LOAD /ME ON PAGE LOAD
------------------------------------------------------- */
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
+
+  function getWishlistCount(wl: any): number {
+    if (!wl) return 0;
+    if (Array.isArray(wl)) return wl.length;
+    if (wl.items && Array.isArray(wl.items)) return wl.items.length;
+    if (wl.wishlist_id) return 1;
+    return 0;
+  }
+
+  function getCartCount(cart: any): number {
+    if (!cart) return 0;
+    if (Array.isArray(cart)) return cart.length;
+    if (cart.items && Array.isArray(cart.items)) return cart.items.length;
+    if (cart.cart_id) return 1;
+    return 0;
+  }
+
+  const reloadCounts = async () => {
+    try {
+      const wl = await apiFetch("wishlist/");
+      setWishlistCount(getWishlistCount(wl));
+
+      const cart = await apiFetch("cart/");
+      setCartCount(getCartCount(cart));
+    } catch { }
+  };
+
+  // INITIAL LOAD
   useEffect(() => {
-    (async () => {
+    const init = async () => {
       try {
-        const me = await safeApi("me");
-        setUser(me?.user ?? me);
+        const me = await apiFetch("me/");
+        setUser(me);
+        await reloadCounts();
       } catch {
         setUser(null);
       } finally {
         setLoading(false);
       }
-    })();
+    };
+    init();
   }, []);
 
-  /* ------------------------------------------------------
-     🔄 SILENT REFRESH EVERY 10 MINUTES
------------------------------------------------------- */
-  useEffect(() => {
-    if (!user) return;
-    const interval = setInterval(() => {
-      apiFetch("refresh", { method: "POST" })
-        .then(() => console.log("Silent refresh successful"))
-        .catch(() => console.warn("Silent refresh failed"));
-    }, 2 * 60 * 1000); // 10 minutes
+  /* ----------------------------
+       LOGOUT (fixed)
+  ----------------------------- */
+  const logout = async () => {
+    setLoggingOut(true);
 
-    return () => clearInterval(interval);
-  }, [user]);
+    setUser(null);
 
-  /* ------------------------------------------------------
-     SIGN UP
------------------------------------------------------- */
-  const signUp: AuthContextType["signUp"] = async (
-    email,
-    password,
-    fullName,
-    phone
-  ) => {
     try {
-      await apiFetch("signup", {
+      await apiFetch("logout/", { method: "POST" });
+    } catch { }
+
+    // Stop refresh loops
+    window.localStorage.setItem("force_logout", "1");
+
+    window.location.replace("/login");
+  };
+
+  /* ----------------------------
+       LOGIN FIX — return {error}
+  ----------------------------- */
+  const signIn = async (mobile: string, password: string) => {
+    console.log("Signing in with:", mobile, password);
+    setLoading(true);
+
+    try {
+      const data = await apiFetch("login/", {
         method: "POST",
-        body: JSON.stringify({
-          email,
-          password,
-          full_name: fullName,
-          phone,
-        }),
+        body: JSON.stringify({ mobile, password }),
       });
+
+      setUser(data.user || data);
+      await reloadCounts();
 
       return { error: null };
     } catch (e: any) {
-      return { error: { message: e.message } };
-    }
-  };
-
-  /* ------------------------------------------------------
-     SIGN IN
------------------------------------------------------- */
-  const signIn: AuthContextType["signIn"] = async (
-    identifier,
-    password
-  ) => {
-    try {
-      const isEmail = /\S+@\S+\.\S+/.test(identifier);
-
-      const payload = isEmail
-        ? { email: identifier, password }
-        : { mobile: identifier, password };
-
-      await apiFetch("login", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
-      const me = await safeApi("me");
-      setUser(me.user ?? me);
-
-      return { error: null };
-    } catch (e: any) {
-      return { error: { message: e.message } };
-    }
-  };
-
-  /* ------------------------------------------------------
-     LOGOUT
------------------------------------------------------- */
-  const signOut = async () => {
-    try {
-      await apiFetch("logout", { method: "POST" });
+      return { error: e };
     } finally {
-      setUser(null);
-    }
-  };
-
-  /* ------------------------------------------------------
-     OTP VERIFY
------------------------------------------------------- */
-  const verifyOtp = async (target: string, code: string) => {
-    try {
-      await apiFetch("verify-otp", {
-        method: "POST",
-        body: JSON.stringify({ target, code }),
-      });
-
-      const me = await safeApi("me");
-      setUser(me?.user ?? me);
-
-      return { error: null };
-    } catch (e: any) {
-      return { error: { message: e.message } };
-    }
-  };
-
-  const resendOtp = async (target: string) => {
-    try {
-      await apiFetch("resend-otp", {
-        method: "POST",
-        body: JSON.stringify({ target }),
-      });
-      return { error: null };
-    } catch (e: any) {
-      return { error: { message: e.message } };
+      setLoading(false);
     }
   };
 
@@ -200,11 +118,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         loading,
-        signUp,
+        logout,
         signIn,
-        signOut,
-        verifyOtp,
-        resendOtp,
+        wishlistCount,
+        cartCount,
+        setWishlistCount,
+        setCartCount,
       }}
     >
       {children}
@@ -212,11 +131,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-/* ------------------------------------------------------
-   EXPORTED HOOK
------------------------------------------------------- */
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
-};
+export const useAuth = () => useContext(AuthContext);

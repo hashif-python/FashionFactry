@@ -1,13 +1,12 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import { AuthProvider } from './contexts/AuthContext';
 
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { FeatureTicker } from './components/FeatureTicker';
-import { Toast } from './components/Toast';
 
 import { Home } from './pages/Home';
 import { Watches } from './pages/Watches';
@@ -23,26 +22,42 @@ import { Account } from './pages/Account';
 import { Orders } from './pages/Orders';
 import { Wishlist } from './pages/Wishlist';
 import { VerifyOtp } from './pages/VerifyOtp';
+import { Address } from './pages/Address';
+import { OrderDetail } from './pages/OrderDetail';
+import { RequireAuth, RequireAnon } from './routes/guards';
+import { WalletPage } from './pages/Wallet';
+import { AddMoneyPage } from './pages/AddMoney';
+import { WalletTransactionsPage } from './pages/WalletTransactions';
+import { Toaster } from 'react-hot-toast';
 
-import { RequireAuth, RequireAnon } from './routes/guards'; // <-- include both
-
-// Scroll to top on route change
+// Scroll to top on navigation
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    window.scrollTo(0, 0);
   }, [pathname]);
   return null;
 }
 
 function AppShell() {
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const showToast = (message: string, type: 'success' | 'error') => setToast({ message, type });
-
   return (
     <div className="min-h-screen flex flex-col">
+      {/* 🔥 GLOBAL TOASTER */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#1A3A35',
+            color: '#fff',
+            borderRadius: '10px',
+          },
+        }}
+      />
+
       <Header />
       <FeatureTicker />
+
       <main className="flex-1">
         <Routes>
           {/* Public */}
@@ -51,12 +66,10 @@ function AppShell() {
           <Route path="/shoes" element={<Shoes />} />
           <Route path="/spectacles" element={<Spectacles />} />
           <Route path="/product/:id" element={<ProductDetail />} />
-
-          {/* Cart/Checkout (you can guard checkout if needed) */}
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
 
-          {/* Anon-only */}
+          {/* Auth restrictions */}
           <Route
             path="/login"
             element={
@@ -65,6 +78,7 @@ function AppShell() {
               </RequireAnon>
             }
           />
+
           <Route
             path="/signup"
             element={
@@ -73,6 +87,7 @@ function AppShell() {
               </RequireAnon>
             }
           />
+
           <Route
             path="/verify-otp"
             element={
@@ -81,9 +96,10 @@ function AppShell() {
               </RequireAnon>
             }
           />
+
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* Auth-only */}
+          {/* Only logged-in users */}
           <Route
             path="/account"
             element={
@@ -92,6 +108,7 @@ function AppShell() {
               </RequireAuth>
             }
           />
+
           <Route
             path="/orders"
             element={
@@ -101,6 +118,15 @@ function AppShell() {
             }
           />
           <Route
+            path="/orders/:order_id"
+            element={
+              <RequireAuth>
+                <OrderDetail />
+              </RequireAuth>
+            }
+          />
+
+          <Route
             path="/wishlist"
             element={
               <RequireAuth>
@@ -108,13 +134,25 @@ function AppShell() {
               </RequireAuth>
             }
           />
+          <Route
+            path="/address"
+            element={
+              <RequireAuth>
+                <Address />
+              </RequireAuth>
+            }
+          />
+          <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/wallet/add-money" element={<AddMoneyPage />} />
+          <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
+
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
       <Footer />
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

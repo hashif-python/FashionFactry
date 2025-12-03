@@ -1,165 +1,179 @@
-import { useState, useEffect } from 'react';
-import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from "react";
+import { Heart, ShoppingCart, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { protectedGet, protectedPost } from "../lib/protectedApi";
+import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
 
-interface WishlistProps {
-  onNavigate: (page: string, productId?: string) => void;
-  onAddToCart: (productId: string, quantity: number) => void;
-}
+export const Wishlist = () => {
+  const navigate = useNavigate();
+  const { setWishlistCount } = useAuth();
 
-export const Wishlist = ({ onNavigate, onAddToCart }: WishlistProps) => {
-  const { user } = useAuth();
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      fetchWishlistItems();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchWishlistItems = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('wishlist_items')
-      .select('*, product:products(*)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setWishlistItems(data as any);
+  /* ----------------------------------------------
+      LOAD WISHLIST
+  ---------------------------------------------- */
+  const loadWishlist = async () => {
+    const data = await protectedGet("wishlist/", navigate);
+    if (data) {
+      setWishlist(data);
+      setWishlistCount(data.length); // update global badge
     }
     setLoading(false);
   };
 
-  const removeFromWishlist = async (itemId: string) => {
-    const { error } = await supabase
-      .from('wishlist_items')
-      .delete()
-      .eq('id', itemId);
+  useEffect(() => {
+    loadWishlist();
+  }, []);
 
-    if (!error) {
-      fetchWishlistItems();
-    }
+  /* ----------------------------------------------
+      REMOVE FROM WISHLIST (fixed)
+  ---------------------------------------------- */
+  const handleRemove = async (product_id: number, variant_id?: number) => {
+    const res = await protectedPost(
+      "wishlist/toggle/",
+      { product_id, variant_id },
+      navigate
+    );
+
+    if (!res) return;
+
+    toast.success("Removed from wishlist");
+
+    // Update state instantly without API reload
+    const updatedList = wishlist.filter(
+      (item) =>
+        !(
+          item.product.id === product_id &&
+          (item.variant?.id ?? null) === (variant_id ?? null)
+        )
+    );
+
+    setWishlist(updatedList);
+    setWishlistCount(updatedList.length);
   };
 
-  const moveToCart = async (productId: string, itemId: string) => {
-    await onAddToCart(productId, 1);
-    await removeFromWishlist(itemId);
+  /* ----------------------------------------------
+      MOVE TO CART
+  ---------------------------------------------- */
+  const handleAddToCart = async (variant_id: number) => {
+    const res = await protectedPost(
+      "cart/add/",
+      { variant_id, quantity: 1 },
+      navigate
+    );
+    console.log(variant_id);
+
+    if (!res) return;
+
+    toast.success("Added to cart");
   };
 
-  if (!user) {
+  /* ----------------------------------------------
+      LOADING UI
+  ---------------------------------------------- */
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F3ED] flex items-center justify-center py-12">
-        <div className="text-center bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-sm max-w-md">
-          <Heart className="w-16 h-16 text-[#C8A962] mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-[#2C2C2C] mb-4">Your Wishlist</h2>
-          <p className="text-[#2C2C2C]/70 mb-6">
-            Save your favorite items for later
-          </p>
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading...
+      </div>
+    );
+  }
+
+  /* ----------------------------------------------
+      EMPTY UI
+  ---------------------------------------------- */
+  if (wishlist.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white px-4">
+        <div className="text-center bg-white/10 p-10 rounded-xl max-w-sm">
+          <Heart className="w-14 h-14 text-[#C8A962] mx-auto mb-4" />
+          <p className="text-xl mb-4">Your wishlist is empty</p>
           <button
-            onClick={() => onNavigate('login')}
-            className="px-6 py-3 bg-[#C8A962] text-white rounded-xl hover:bg-[#C8A962] transition-colors font-medium"
+            onClick={() => navigate("/")}
+            className="px-6 py-3 bg-[#C8A962] text-white rounded-lg"
           >
-            Login to View
+            Start Shopping
           </button>
         </div>
       </div>
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-[#2C2C2C]">Loading...</div>
-      </div>
-    );
-  }
-
+  /* ----------------------------------------------
+      MAIN UI
+  ---------------------------------------------- */
   return (
-    <div className="min-h-screen bg-[#F5F3ED] py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Heart className="w-8 h-8 text-[#C8A962]" />
-          <h1 className="text-4xl font-bold text-[#2C2C2C]">My Wishlist</h1>
-        </div>
+    <div className="min-h-screen py-8 px-4 text-white">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8">My Wishlist</h1>
 
-        {wishlistItems.length === 0 ? (
-          <div className="text-center py-12 bg-white/10 backdrop-blur-md rounded-2xl shadow-sm">
-            <Heart className="w-16 h-16 text-[#C8A962]/30 mx-auto mb-4" />
-            <p className="text-xl text-[#2C2C2C]/70 mb-4">Your wishlist is empty</p>
-            <p className="text-[#2C2C2C]/60 mb-6">
-              Start adding your favorite items
-            </p>
-            <button
-              onClick={() => onNavigate('home')}
-              className="px-6 py-3 bg-[#C8A962] text-white rounded-xl hover:bg-[#C8A962] transition-colors font-medium"
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {wishlist.map((item) => (
+            <div
+              key={item.wishlist_id}
+              className="bg-white/10 p-4 rounded-xl relative"
             >
-              Start Shopping
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {wishlistItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              {/* PRODUCT IMAGE */}
+              <button
+                onClick={() =>
+                  navigate(
+                    `/product/${item.product.id}?type=${item.product.product_type}`
+                  )
+                }
               >
-                <div className="relative">
-                  <button
-                    onClick={() => onNavigate('product', item.product_id)}
-                    className="w-full"
-                  >
-                    <img
-                      src={item.product?.images?.[0] || 'https://via.placeholder.com/300'}
-                      alt={item.product?.name}
-                      className="w-full h-48 object-cover"
-                    />
-                  </button>
-                  <button
-                    onClick={() => removeFromWishlist(item.id)}
-                    className="absolute top-3 right-3 p-2 bg-white/90 rounded-full hover:bg-red-500 hover:text-white transition-colors"
-                  >
-                    <Heart className="w-5 h-5 fill-current text-[#C8A962] hover:text-white" />
-                  </button>
-                </div>
+                <img
+                  src={item.product.image}
+                  alt={item.product.name}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              </button>
 
-                <div className="p-4">
-                  <button
-                    onClick={() => onNavigate('product', item.product_id)}
-                    className="text-left w-full"
-                  >
-                    <h3 className="font-semibold text-[#2C2C2C] mb-2 hover:text-[#C8A962] transition-colors">
-                      {item.product?.name}
-                    </h3>
-                  </button>
-                  <p className="text-xl font-bold text-[#0B1D39] mb-4">
-                    ₹{item.product?.price.toLocaleString()}
-                  </p>
+              {/* REMOVE BUTTON */}
+              <button
+                onClick={() =>
+                  handleRemove(item.product.id, item.variant?.id)
+                }
+                className="absolute top-3 right-3 bg-white p-2 rounded-full hover:bg-gray-200"
+              >
+                <Trash2 className="w-4 h-4 text-red-500" />
+              </button>
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => moveToCart(item.product_id, item.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#C8A962] text-white rounded-xl hover:bg-[#C8A962] transition-colors text-sm font-medium"
-                    >
-                      <ShoppingCart className="w-4 h-4" />
-                      Add to Cart
-                    </button>
-                    <button
-                      onClick={() => removeFromWishlist(item.id)}
-                      className="p-2 border border-[#D4CEB8] rounded-xl hover:border-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4 text-[#2C2C2C] hover:text-red-500" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              {/* TITLE */}
+              <h2 className="mt-4 font-semibold">{item.product.name}</h2>
+
+              {/* VARIANT DETAILS DISPLAY */}
+              {item.variant && (
+                <p className="text-sm text-gray-300 mt-1">
+                  {item.variant.variant_type === "shoe" &&
+                    `Size ${item.variant.size} • ${item.variant.color}`}
+                  {item.variant.variant_type === "watch" &&
+                    `${item.variant.strap_color} • ${item.variant.dial_size}`}
+                  {item.variant.variant_type === "spectacle" &&
+                    `${item.variant.frame_color} • ${item.variant.lens_power}`}
+                </p>
+              )}
+
+              {/* PRICE */}
+              <p className="text-xl font-bold mt-2">
+                ₹
+                {(item.variant?.final_price ??
+                  item.product.offer_price ??
+                  item.product.price)?.toLocaleString()}
+              </p>
+
+              {/* ADD TO CART BUTTON */}
+              <button
+                onClick={() => handleAddToCart(item.variant?.id)}
+                className="w-full mt-4 bg-[#C8A962] text-white py-2 rounded-lg flex items-center justify-center gap-2"
+              >
+                <ShoppingCart className="w-5 h-5" /> Add to Cart
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

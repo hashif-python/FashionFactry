@@ -1,132 +1,107 @@
-import { useState, useEffect } from 'react';
-import { Package } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { protectedGet } from "../lib/protectedApi";
+import { ArrowRight } from "lucide-react";
 
-interface OrdersProps {
-  onNavigate: (page: string) => void;
-}
-
-export const Orders = ({ onNavigate }: OrdersProps) => {
-  const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+export const Orders = () => {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user]);
+    loadOrders();
+  }, []);
 
-  const fetchOrders = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setOrders(data as Order[]);
-    }
+  const loadOrders = async () => {
+    const data = await protectedGet("orders/", navigate);
+    if (data) setOrders(data);
     setLoading(false);
   };
 
-  if (!user) {
+  if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-transparent">
-        <div className="text-center">
-          <p className="text-xl text-white/80 mb-4">Please login to view your orders</p>
-          <button
-            onClick={() => onNavigate('login')}
-            className="px-6 py-2 bg-[#C8A962] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
-          >
-            Login
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center text-white text-xl">
+        Loading...
       </div>
     );
-  }
 
-  if (loading) {
+  if (orders.length === 0)
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-white/80">Loading...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center text-white">
+        <h2 className="text-2xl mb-4">No Orders Found</h2>
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-2 bg-[#C8A962] text-black rounded-lg"
+        >
+          Shop Now
+        </button>
       </div>
     );
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'shipped':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-transparent py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-white mb-8">My Orders</h1>
+    <div className="min-h-screen py-10 px-4 text-white">
+      <h1 className="text-3xl font-bold mb-8">My Orders</h1>
 
-        {orders.length === 0 ? (
-          <div className="text-center py-12 bg-white/10 backdrop-blur-md rounded-lg">
-            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-xl text-white/80 mb-4">No orders yet</p>
+      <div className="space-y-5">
+        {orders.map((order) => (
+          <div
+            key={order.order_id}
+            className="bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20"
+          >
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-lg font-bold">Order #{order.order_id}</p>
+                <p className="text-white/70 text-sm">
+                  {new Date(order.created_at).toLocaleString()}
+                </p>
+              </div>
+
+              <span
+                className={`
+                  px-3 py-1 rounded-lg text-sm font-semibold
+                  ${order.status === "delivered"
+                    ? "bg-green-600"
+                    : order.status === "pending"
+                      ? "bg-yellow-600"
+                      : order.status === "processing"
+                        ? "bg-blue-600"
+                        : "bg-red-600"
+                  }
+                `}
+              >
+                {order.status.toUpperCase()}
+              </span>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-white/80">
+                Payment:{" "}
+                <span
+                  className={`font-semibold ${order.payment_status === "success"
+                      ? "text-green-400"
+                      : order.payment_status === "failed"
+                        ? "text-red-400"
+                        : "text-yellow-400"
+                    }`}
+                >
+                  {order.payment_status}
+                </span>
+              </p>
+
+              <p className="text-xl font-bold mt-2">
+                ₹{Number(order.total_price).toLocaleString()}
+              </p>
+            </div>
+
             <button
-              onClick={() => onNavigate('home')}
-              className="px-6 py-2 bg-[#C8A962] text-white rounded-lg hover:bg-[#C8A962] transition-colors"
+              onClick={() => navigate(`/orders/${order.order_id}`)}
+              className="mt-4 flex items-center gap-2 text-[#C8A962] hover:underline"
             >
-              Start Shopping
+              View Details <ArrowRight />
             </button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="bg-white/10 backdrop-blur-md rounded-lg p-6 shadow-md">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-sm text-white/80">Order Number</p>
-                    <p className="text-lg font-bold text-white">{order.order_number}</p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
-                      order.status
-                    )}`}
-                  >
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                  </span>
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-white/80">Order Date</span>
-                    <span className="text-white">
-                      {new Date(order.created_at).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-white/80">Total Amount</span>
-                    <span className="text-lg font-bold text-white">
-                      ₹{order.total_amount.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );

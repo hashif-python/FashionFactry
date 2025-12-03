@@ -1,25 +1,35 @@
 import { Star, ShoppingCart } from 'lucide-react';
-import { Product } from '../lib/supabase';
 
 interface ProductCardProps {
-  product: Product;
-  onProductClick: (id: string) => void;
-  onAddToCart: (id: string) => void;
+  product: any; // backend product
+  onProductClick: (id: number) => void;
+  onAddToCart: (id: number) => void;
 }
 
 export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCardProps) => {
-  // Try to detect discount: supports optional fields like mrp/compare_price/compareAtPrice
-  const mrp =
-    (product as any).mrp ??
-    (product as any).compare_price ??
-    (product as any).compareAtPrice ??
-    undefined;
+  if (!product) return null;
 
-  const hasDiscount = typeof mrp === 'number' && mrp > product.price;
+  // -----------------------------
+  //   IMAGE
+  // -----------------------------
+  const img = product.image
 
-  const img = Array.isArray(product.images) && product.images.length > 0
-    ? product.images[0]
-    : 'https://via.placeholder.com/600x600?text=No+Image';
+  // -----------------------------
+  //   VARIANT + PRICES
+  // -----------------------------
+  const variant = product.variants?.[0];
+
+  const rawPrice = product.original_price ? Number(product.original_price) : null;
+  const finalPrice = product.offer_price ? Number(product.offer_price) : rawPrice;
+  const discount = variant ? Math.round(((rawPrice - finalPrice) / rawPrice) * 100) : 0;
+
+  const mrp = rawPrice;
+  const hasDiscount = discount > 0;
+
+  // -----------------------------
+  //   RATING (backend doesn't send rating)
+  // -----------------------------
+  const rating = product.rating ?? 4.5; // default rating fallback
 
   return (
     <div
@@ -40,7 +50,7 @@ export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCar
           />
         </div>
 
-        {(hasDiscount || (product as any).is_on_sale) && (
+        {hasDiscount && (
           <span
             className="
               absolute bottom-3 left-4 rounded-full
@@ -48,7 +58,7 @@ export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCar
               border border-white/20
             "
           >
-            Sale
+            {discount}% OFF
           </span>
         )}
       </div>
@@ -66,30 +76,37 @@ export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCar
           {product.name}
         </h3>
 
+        {/* Brand */}
+        {product.brand?.name && (
+          <p className="text-xs text-white/50 mt-1 uppercase">
+            {product.brand.name}
+          </p>
+        )}
+
         {/* Rating */}
         <div className="flex items-center gap-1 mt-2">
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`w-4 h-4 ${i < Math.round(product.rating)
+              className={`w-4 h-4 ${i < Math.round(rating)
                 ? 'fill-[#C8A962] text-[#C8A962]'
                 : 'text-white/20'
                 }`}
             />
           ))}
-          <span className="text-xs text-white/60 ml-1">({product.rating})</span>
+          <span className="text-xs text-white/60 ml-1">({rating})</span>
         </div>
 
         {/* Price + Cart */}
         <div className="mt-2 flex items-end justify-between">
           <div className="flex flex-col">
-            {hasDiscount && (
+            {hasDiscount && mrp && (
               <span className="text-xs text-white/50 line-through">
-                ₹{(mrp as number).toLocaleString()}
+                ₹{Number(mrp).toLocaleString()}
               </span>
             )}
             <span className="text-lg sm:text-xl font-bold text-white">
-              ₹{product.price.toLocaleString()}
+              ₹{Number(finalPrice).toLocaleString()}
             </span>
           </div>
 

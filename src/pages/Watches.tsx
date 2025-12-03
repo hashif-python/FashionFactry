@@ -1,155 +1,106 @@
-import { useState, useEffect } from 'react';
-import { ProductCard } from '../components/ProductCard';
+import { useEffect, useState } from "react";
+import { apiGet } from "../lib/api";
+import { ProductCard } from "../components/ProductCard";
+import { useNavigate } from "react-router-dom";
 
-interface WatchesProps {
-  onNavigate: (page: string, productId?: string) => void;
-  onAddToCart: (productId: string) => void;
-}
-
-export const Watches = ({ onNavigate, onAddToCart }: WatchesProps) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [selectedGender, setSelectedGender] = useState<'all' | 'men' | 'women'>('all');
-  const [sortBy, setSortBy] = useState<'price-low' | 'price-high' | 'new' | 'best'>('new');
+export const Watches = () => {
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [sortBy, setSortBy] = useState("new");
+  const [selectedGender, setSelectedGender] = useState("all");
+
+  const navigate = useNavigate();
+
   useEffect(() => {
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  useEffect(() => {
-    filterAndSortProducts();
-  }, [products, selectedGender, sortBy]);
-
-  const fetchProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*, categories!inner(slug)')
-      .eq('categories.slug', 'watches');
-
-    if (!error && data) {
-      setProducts(data as unknown as Product[]);
+  const loadProducts = async () => {
+    try {
+      const data = await apiGet("products/watches/");
+      setProducts(data);
+    } catch (err) {
+      console.error("Error loading watches:", err);
     }
     setLoading(false);
   };
 
-  const filterAndSortProducts = () => {
-    let filtered = [...products];
-
-    if (selectedGender !== 'all') {
-      filtered = filtered.filter((p) => p.gender === selectedGender);
-    }
-
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'best':
-        filtered.sort((a, b) => (b.is_best_seller ? 1 : 0) - (a.is_best_seller ? 1 : 0));
-        break;
-      case 'new':
-      default:
-        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        break;
-    }
-
-    setFilteredProducts(filtered);
+  // Fake cart handler (add real cart system later)
+  const handleAddToCart = (id: number) => {
+    console.log("Added to cart:", id);
   };
 
-  const bestSellers = products.filter((p) => p.is_best_seller).slice(0, 4);
+  const handleProductClick = (id: number) => {
+    navigate(`/product/${id}?type=watch`);
+  };
 
-  if (loading) {
+  const processProducts = () => {
+    let result = [...products];
+
+    if (selectedGender !== "all") {
+      result = result.filter((p) => p.gender === selectedGender);
+    }
+
+    return result;
+  };
+
+  const filtered = processProducts();
+
+  if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-white">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading...
       </div>
     );
-  }
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-white mb-8">Watches</h1>
+    <div className="min-h-screen py-8 text-white">
+      <div className="max-w-7xl mx-auto px-4">
 
+        <h1 className="text-4xl font-bold mb-6">Watches</h1>
+
+        {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">
-          <button
-            onClick={() => setSelectedGender('all')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${
-              selectedGender === 'all'
-                ? 'bg-[#C8A962] text-white'
-                : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setSelectedGender('men')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${
-              selectedGender === 'men'
-                ? 'bg-[#C8A962] text-white'
-                : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-            }`}
-          >
-            Men
-          </button>
-          <button
-            onClick={() => setSelectedGender('women')}
-            className={`px-6 py-2 rounded-xl font-semibold transition-colors ${
-              selectedGender === 'women'
-                ? 'bg-[#C8A962] text-white'
-                : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
-            }`}
-          >
-            Women
-          </button>
+          {["all", "men", "women"].map((g) => (
+            <button
+              key={g}
+              onClick={() => setSelectedGender(g)}
+              className={`px-6 py-2 rounded-xl 
+              ${selectedGender === g ? "bg-[#C8A962]" : "bg-white/20"}`}
+            >
+              {g === "all" ? "All" : g[0].toUpperCase() + g.slice(1)}
+            </button>
+          ))}
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="ml-auto px-4 py-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8A962]"
+            onChange={(e) => setSortBy(e.target.value)}
+            className="ml-auto px-4 py-2 bg-white/10 rounded-xl text-white"
           >
-            <option value="new" className="text-gray-900">New Arrivals</option>
-            <option value="best" className="text-gray-900">Best Sellers</option>
-            <option value="price-low" className="text-gray-900">Price: Low to High</option>
-            <option value="price-high" className="text-gray-900">Price: High to Low</option>
+            <option value="new">Newest</option>
+            <option value="best">Best Seller</option>
+            <option value="price-low">Price Low → High</option>
+            <option value="price-high">Price High → Low</option>
           </select>
         </div>
 
-        {bestSellers.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Best Sellers</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {bestSellers.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onProductClick={(id) => onNavigate('product', id)}
-                  onAddToCart={onAddToCart}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <h2 className="text-2xl font-bold text-white mb-4">All Watches</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {filteredProducts.map((product) => (
+        {/* Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filtered.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
-              onProductClick={(id) => onNavigate('product', id)}
-              onAddToCart={onAddToCart}
+              onProductClick={handleProductClick}
+              onAddToCart={handleAddToCart}
             />
           ))}
         </div>
 
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-xl text-white/70">No watches found matching your criteria.</p>
-          </div>
+        {filtered.length === 0 && (
+          <p className="text-center text-white/70 mt-12">
+            No products found.
+          </p>
         )}
       </div>
     </div>
