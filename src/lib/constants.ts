@@ -1,1 +1,1 @@
-export const API_BASE = "http://localhost:8000/api/users";
+export const API_BASE = "https://api.fashionfactry.com/api/users";

@@ -10,7 +10,7 @@ export default defineConfig({
     // Ensures file changes are detected in WSL/Docker/Network drives
     proxy: {
       '/api': {
-        target: 'http://localhost:8000', // backend server
+        target: 'https://api.fashionfactry.com', // backend server
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
