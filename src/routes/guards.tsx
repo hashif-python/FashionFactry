@@ -1,18 +1,31 @@
 // src/routes/guards.tsx
-import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
-export function RequireAuth({ children }: { children: ReactNode }) {
-    const { user, loading } = useAuth();
-    if (loading) return null; // or a spinner
-    if (!user) return <Navigate to="/login" replace />;
-    return <>{children} </>;
+interface GuardProps {
+    children: JSX.Element;   // 🔥 IMPORTANT FIX
 }
 
-export function RequireAnon({ children }: { children: ReactNode }) {
+export function RequireAuth({ children }: GuardProps) {
     const { user, loading } = useAuth();
-    if (loading) return null; // or a spinner
-    if (user) return <Navigate to="/" replace />;
-    return <>{children} </>;
+
+    if (loading) return null;
+
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return children; // 🔥 return only ONE element
+}
+
+export function RequireAnon({ children }: GuardProps) {
+    const { user, loading } = useAuth();
+
+    if (loading) return null;
+
+    if (user) {
+        return <Navigate to="/" replace />;
+    }
+
+    return children; // 🔥 no fragment
 }
