@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toE164 } from "../lib/phone";
-import toast from "react-hot-toast"; // Notifications
+import toast from "react-hot-toast";
 
 const COUNTRY_CODES = [
   { code: "91", name: "India (+91)" },
@@ -13,11 +13,7 @@ const COUNTRY_CODES = [
   { code: "65", name: "Singapore (+65)" },
 ];
 
-interface LoginProps {
-  onLoginSuccess?: () => void;
-}
-
-export const Login = ({ onLoginSuccess }: LoginProps) => {
+export const Login = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -33,17 +29,32 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
-    if (!fullNumber || fullNumber.length < 7) {
-      setError("Enter a valid phone number");
-      setLoading(false);
+    // -----------------------------------------------------------
+    // VALIDATION FIRST (NO LOADING STATE)
+    // -----------------------------------------------------------
+    if (!localPhone.trim()) {
+      setError("Phone number is required");
       return;
     }
 
-    // ⭐ Sign-in now ALWAYS returns { error?: any }
+    if (!password.trim()) {
+      setError("Password is required");
+      return;
+    }
+
+    if (!fullNumber || fullNumber.length < 7) {
+      setError("Enter a valid phone number");
+      return;
+    }
+
+    // -----------------------------------------------------------
+    // ONLY NOW WE ENABLE LOADING
+    // -----------------------------------------------------------
+    setLoading(true);
+
     const { error: loginError } = await signIn(fullNumber, password);
-    console.log(loginError);
+
     if (loginError) {
       setError("Invalid phone or password");
       toast.error("Login failed");
@@ -51,14 +62,10 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
       return;
     }
 
-    // SUCCESS
-    toast.success("Logged in successfully.");
+    toast.success("Logged in successfully!");
 
-    if (onLoginSuccess) onLoginSuccess();
-
-    setTimeout(() => {
-      navigate("/", { replace: true });
-    }, 200);
+    // Navigate without hiding form
+    setTimeout(() => navigate("/", { replace: true }), 100);
   };
 
   return (
@@ -81,6 +88,7 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
               <select
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
+                disabled={loading}
                 className="w-40 p-2 rounded-md bg-white text-black"
               >
                 {COUNTRY_CODES.map((c) => (
@@ -93,6 +101,7 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
               <input
                 type="tel"
                 value={localPhone}
+                disabled={loading}
                 onChange={(e) =>
                   setLocalPhone(e.target.value.replace(/\D/g, ""))
                 }
@@ -102,8 +111,7 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
             </div>
 
             <p className="text-white/70 text-xs mt-1">
-              Login as:{" "}
-              <span className="font-semibold">{fullNumber}</span>
+              Login as: <span className="font-semibold">{fullNumber}</span>
             </p>
           </div>
 
@@ -114,6 +122,7 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
             <input
               type={showPwd ? "text" : "password"}
               value={password}
+              disabled={loading}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full p-2 rounded-md bg-white text-black"
@@ -121,6 +130,7 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
 
             <button
               type="button"
+              disabled={loading}
               onClick={() => setShowPwd((v) => !v)}
               className="absolute right-2 top-9 text-xs text-black"
             >
@@ -141,6 +151,7 @@ export const Login = ({ onLoginSuccess }: LoginProps) => {
         <p className="text-white mt-6 text-center">
           Don’t have an account?{" "}
           <button
+            disabled={loading}
             className="text-[#C8A962]"
             onClick={() => navigate("/signup")}
           >
