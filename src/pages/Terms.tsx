@@ -26,7 +26,7 @@ export const Terms = () => {
                 </h2>
                 <p className="text-white/80 leading-relaxed">
                     All orders are subject to availability.
-                    Payments made through Razorpay or Wallet are handled securely.
+                    Payments made through Online Payment or Wallet are handled securely.
                 </p>
 
                 <h2 className="text-2xl font-semibold text-[#C8A962] mt-8 mb-3">

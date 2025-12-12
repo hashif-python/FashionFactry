@@ -3,43 +3,25 @@ import { useNavigate } from "react-router-dom";
 import { Check, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { protectedGet, protectedPost } from "../lib/protectedApi";
 
-import {
-  protectedGet,
-  protectedPost,
-} from "../lib/protectedApi";
+/* Required for PayU Checkout Plus */
+declare global {
+  interface Window {
+    bolt: any;
+  }
+}
 
-/* --------------------------------------------------------------
-   Razorpay Script Loader
---------------------------------------------------------------- */
-const loadRazorpay = () => {
-  return new Promise((resolve) => {
-    if ((window as any).Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-};
-
-/* --------------------------------------------------------------
-      MAIN CHECKOUT COMPONENT
---------------------------------------------------------------- */
 export const Checkout = () => {
   const navigate = useNavigate();
   const { user, setCartCount } = useAuth();
 
-  /* CART & INITIAL STATES */
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ADDRESS STATES */
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
+
   const [addressModalOpen, setAddressModalOpen] = useState(false);
 
   const [newAddressForm, setNewAddressForm] = useState({
@@ -52,17 +34,17 @@ export const Checkout = () => {
     is_default: false,
   });
 
-  /* PAYMENT STATES */
-  const [paymentMethod, setPaymentMethod] = useState("razorpay");
+  const [paymentMethod, setPaymentMethod] = useState("payu");
   const [walletBalance, setWalletBalance] = useState(0);
 
-  /* CHECKOUT STEP */
   const [step, setStep] = useState(1);
   const [orderNumber, setOrderNumber] = useState("");
+  const [paymentStatus, setPaymentStatus] =
+    useState<"success" | "failed" | null>(null);
 
-  /* --------------------------------------------------------------
-      LOAD CART + ADDRESSES + WALLET
-  --------------------------------------------------------------- */
+  const [processing, setProcessing] = useState(false); // prevent double-click
+
+  /* LOAD ON USER AVAILABLE */
   useEffect(() => {
     if (user) {
       loadCart();
@@ -70,6 +52,12 @@ export const Checkout = () => {
       loadWallet();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (step === 3 || step === 4) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [step]);
 
   const loadCart = async () => {
     const data = await protectedGet("cart/", navigate);
@@ -94,16 +82,17 @@ export const Checkout = () => {
     if (data) setWalletBalance(Number(data.balance));
   };
 
-  /* --------------------------------------------------------------
-      ADD NEW ADDRESS
-  --------------------------------------------------------------- */
+  /* ----------------------------
+     ADD NEW ADDRESS
+  ----------------------------- */
   const handleAddAddress = async (e: any) => {
     e.preventDefault();
 
     const res = await protectedPost("address/", newAddressForm, navigate);
 
     if (res) {
-      toast.success("Address added successfully");
+      toast.success("Address added");
+      setAddressModalOpen(false);
       setNewAddressForm({
         full_name: "",
         phone: "",
@@ -113,127 +102,231 @@ export const Checkout = () => {
         state: "",
         is_default: false,
       });
-      await loadAddresses();
-      setAddressModalOpen(false);
+      loadAddresses();
     }
   };
 
-  /* --------------------------------------------------------------
-      HANDLE CHECKOUT
-  --------------------------------------------------------------- */
+  /* ----------------------------
+     HANDLE CHECKOUT + PAYMENT
+  ----------------------------- */
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
+    if (processing) return;
+    setProcessing(true);
+
     if (!selectedAddress) {
-      toast.error("Please select a shipping address");
+      toast.error("Please select an address");
+      setProcessing(false);
       return;
     }
 
-    // STEP 1 → Go to payment step
     if (step === 1) {
       setStep(2);
+      setProcessing(false);
       return;
     }
 
-    // STEP 2 → Payment Step
     if (step === 2) {
+      /* WALLET PAYMENT ------------------------------ */
       if (paymentMethod === "wallet") {
+        const total = cartItems.reduce(
+          (sum, item) =>
+            sum +
+            (item.variant.final_price || item.variant.price) * item.quantity,
+          0
+        );
+
         if (walletBalance < total) {
           toast.error("Insufficient wallet balance");
+          setProcessing(false);
           return;
         }
 
-        // WALLET PAYMENT
         const res = await protectedPost(
           "checkout/",
-          {
-            address_id: selectedAddress.id,
-            payment_method: "wallet",
-          },
+          { address_id: selectedAddress.id, payment_method: "wallet" },
           navigate
         );
 
-        if (!res) return;
+        if (!res) {
+          setProcessing(false);
+          return;
+        }
 
-        toast.success("Order placed using wallet");
         setOrderNumber(res.order_id);
+        setPaymentStatus("success");
         setStep(3);
-        loadWallet();
+        setProcessing(false);
+        setCartCount(0);
         return;
       }
 
-      // RAZORPAY PAYMENT
+      /* PAYU PAYMENT -------------------------------- */
       const checkoutRes = await protectedPost(
         "checkout/",
-        {
-          address_id: selectedAddress.id,
-          payment_method: "razorpay",
-        },
+        { address_id: selectedAddress.id, payment_method: "payu" },
         navigate
       );
 
-      if (!checkoutRes) return;
+      if (!checkoutRes) {
+        setProcessing(false);
+        return;
+      }
 
       const backendOrderId = checkoutRes.order_id;
-      const amount = checkoutRes.total;
 
-      const rpOrder = await protectedPost(
-        "payment/razorpay/create/",
-        { amount },
+      const payuInit = await protectedPost(
+        "payment/payu/initiate/",
+        { order_id: backendOrderId },
         navigate
       );
 
-      if (!rpOrder) {
-        toast.error("Failed to create payment order");
+      if (!payuInit || !payuInit.params) {
+        toast.error("Unable to reach PayU");
+        setProcessing(false);
         return;
       }
 
-      // Load Razorpay SDK
-      const loaded = await loadRazorpay();
-      if (!loaded) {
-        toast.error("Failed to load Razorpay");
+      const payu = payuInit.params;
+
+      if (!window.bolt || !window.bolt.launch) {
+        toast.error("PayU script not loaded");
+        setProcessing(false);
         return;
       }
 
-      const options = {
-        key: rpOrder.key_id,
-        order_id: rpOrder.order_id,
-        amount: rpOrder.amount,
-        currency: rpOrder.currency,
-        name: "Fashion Factory",
-        description: "Order Payment",
-
-        handler: async function (response: any) {
-          await protectedPost(
-            "payment/razorpay/verify/",
-            {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              order_id: backendOrderId,
-            },
-            navigate
-          );
-
-          setOrderNumber(backendOrderId);
-          setStep(3);
+      window.bolt.launch(
+        {
+          key: payu.key,
+          txnid: payu.txnid,
+          hash: payu.hash,
+          amount: payu.amount,
+          firstname: payu.firstname,
+          email: payu.email,
+          phone: payu.phone,
+          productinfo: payu.productinfo,
+          surl: payu.surl,
+          furl: payu.furl,
         },
-      };
+        {
+          responseHandler: async (BOLT: any) => {
+            console.log("BOLT RESPONSE:", BOLT);
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+            const verifyRes = await protectedPost(
+              "payment/payu/verify/",
+              {
+                txnid: BOLT.response.txnid,
+                mihpayid: BOLT.response.mihpayid,
+                status: BOLT.response.txnStatus,
+                amount: BOLT.response.amount,
+              },
+              navigate
+            );
 
-      return;
+            if (verifyRes?.status === "success") {
+              setOrderNumber(backendOrderId);
+              setPaymentStatus("success");
+              setCartCount(0);
+              setStep(3);
+            } else {
+              setPaymentStatus("failed");
+              setStep(4);
+            }
+
+            setProcessing(false);
+          },
+
+          catchException: (err: any) => {
+            console.log("PayU Exception:", err);
+            toast.error("Payment error occurred");
+            setPaymentStatus("failed");
+            setStep(4);
+            setProcessing(false);
+          },
+        }
+      );
     }
   };
 
-  /* --------------------------------------------------------------
-      LOADING & EMPTY STATES
-  --------------------------------------------------------------- */
+  /* -----------------------------
+       HIDE MOBILE BOTTOM NAV ON SUCCESS/FAILURE
+  ------------------------------ */
+  useEffect(() => {
+    const bottomNav = document.querySelector(".mobile-bottom-nav");
+
+    if (step === 3 || step === 4) bottomNav?.classList.add("hidden");
+    else bottomNav?.classList.remove("hidden");
+
+    return () => bottomNav?.classList.remove("hidden");
+  }, [step]);
+
+  /* -----------------------------
+       SUCCESS SCREEN (CENTERED)
+  ------------------------------ */
+  if (step === 3 && paymentStatus === "success")
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white px-6">
+        <div className="bg-white/10 p-8 rounded-xl text-center backdrop-blur-xl max-w-md">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-10 h-10 text-green-700" />
+          </div>
+
+          <h2 className="text-3xl font-bold mb-2">Payment Successful!</h2>
+          <p className="text-white/70 mb-4">Your order has been placed.</p>
+
+          <p className="text-sm text-white/60">Order Number</p>
+          <p className="text-2xl font-bold text-[#C8A962] mb-6">
+            {orderNumber}
+          </p>
+
+          <button
+            onClick={() => navigate("/orders")}
+            className="w-full bg-[#C8A962] py-3 rounded-lg font-semibold"
+          >
+            View Orders
+          </button>
+        </div>
+      </div>
+    );
+
+  /* -----------------------------
+       FAILURE SCREEN (CENTERED)
+  ------------------------------ */
+  if (step === 4 && paymentStatus === "failed")
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white px-6">
+        <div className="bg-white/10 p-8 rounded-xl text-center backdrop-blur-xl max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="w-10 h-10 text-red-700" />
+          </div>
+
+          <h2 className="text-3xl font-bold mb-2">Payment Failed!</h2>
+          <p className="text-white/70 mb-4">
+            Your payment could not be completed.
+          </p>
+
+          <button
+            onClick={() => {
+              setStep(2);
+              setProcessing(false);
+            }}
+            className="w-full bg-red-500 py-3 rounded-lg font-semibold"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+
+  /* -----------------------------
+       DEFAULT CHECKOUT SCREEN
+  ------------------------------ */
+
   if (!user)
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
-        <p>Please login to continue</p>
+        Please login to continue
       </div>
     );
 
@@ -251,7 +344,7 @@ export const Checkout = () => {
           <p>Your cart is empty</p>
           <button
             onClick={() => navigate("/")}
-            className="bg-[#C8A962] px-4 py-2 rounded-lg mt-4"
+            className="bg[#C8A962] px-4 py-2 rounded-lg mt-4"
           >
             Continue Shopping
           </button>
@@ -266,44 +359,12 @@ export const Checkout = () => {
     0
   );
 
-  /* --------------------------------------------------------------
-      STEP 3 — ORDER SUCCESS PAGE
-  --------------------------------------------------------------- */
-  if (step === 3)
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white py-12">
-        <div className="bg-white/10 p-8 rounded-xl backdrop-blur-md text-center max-w-md">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="w-10 h-10 text-green-700" />
-          </div>
-
-          <h2 className="text-3xl font-bold mb-3">Order Confirmed!</h2>
-          <p className="text-white/70 mb-4">Your order has been placed</p>
-
-          <p className="text-sm text-white/60">Order Number</p>
-          <p className="text-2xl font-bold text-[#C8A962] mb-6">
-            {orderNumber}
-          </p>
-
-          <button
-            onClick={() => navigate("/orders")}
-            className="w-full bg-[#C8A962] py-3 rounded-lg font-semibold"
-          >
-            View Orders
-          </button>
-        </div>
-      </div>
-    );
-
-  /* --------------------------------------------------------------
-      MAIN CHECKOUT UI
-  --------------------------------------------------------------- */
   return (
     <div className="min-h-screen py-10 px-4 text-white">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">Checkout</h1>
 
-        {/* ======================== ADDRESS SECTION ======================== */}
+        {/* ADDRESS SECTION */}
         <div className="bg-white/10 p-5 rounded-xl backdrop-blur-md mb-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Shipping Address</h2>
@@ -331,168 +392,7 @@ export const Checkout = () => {
           )}
         </div>
 
-        {/* ======================== ADDRESS MODAL ======================== */}
-        {addressModalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[999]">
-            <div className="bg-white/10 p-6 rounded-xl w-full max-w-xl relative">
-              <button
-                onClick={() => setAddressModalOpen(false)}
-                className="absolute top-3 right-3"
-              >
-                <X className="w-6 h-6 text-white" />
-              </button>
-
-              <h2 className="text-xl font-bold mb-4">Select Address</h2>
-
-              {/* Address list */}
-              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                {addresses.map((addr) => (
-                  <button
-                    key={addr.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAddress(addr);
-                      toast.success("Address Selected");
-                      setAddressModalOpen(false); // auto close
-                    }}
-                    className={`w-full text-left p-4 rounded-lg border transition-all 
-                      ${selectedAddress?.id === addr.id
-                        ? "border-[#C8A962] bg-[#C8A962]/30"
-                        : "border-white/20 bg-white/10 hover:border-[#C8A962]"
-                      }
-                    `}
-                  >
-                    <p className="font-bold">{addr.full_name}</p>
-                    <p className="text-white/80">{addr.phone}</p>
-                    <p className="text-white/80">{addr.address_line}</p>
-                    <p className="text-white/80">
-                      {addr.city}, {addr.state} - {addr.pincode}
-                    </p>
-
-                    {addr.is_default && (
-                      <span className="text-xs bg-green-600 px-2 py-1 rounded mt-2 inline-block">
-                        Default
-                      </span>
-                    )}
-                  </button>
-                ))}
-
-                {addresses.length === 0 && (
-                  <p className="text-center text-white/60">
-                    No addresses added
-                  </p>
-                )}
-              </div>
-
-              {/* Add new address */}
-              <h2 className="text-xl font-bold mt-6 mb-3">Add New Address</h2>
-
-              <form onSubmit={handleAddAddress} className="space-y-3">
-                <input
-                  required
-                  placeholder="Full Name"
-                  className="w-full px-4 py-2 rounded-lg text-black"
-                  value={newAddressForm.full_name}
-                  onChange={(e) =>
-                    setNewAddressForm({
-                      ...newAddressForm,
-                      full_name: e.target.value,
-                    })
-                  }
-                />
-
-                <input
-                  required
-                  placeholder="Phone"
-                  className="w-full px-4 py-2 rounded-lg text-black"
-                  value={newAddressForm.phone}
-                  onChange={(e) =>
-                    setNewAddressForm({
-                      ...newAddressForm,
-                      phone: e.target.value,
-                    })
-                  }
-                />
-
-                <div className="grid grid-cols-3 gap-3">
-                  <input
-                    required
-                    placeholder="Pincode"
-                    className="px-4 py-2 rounded-lg text-black"
-                    value={newAddressForm.pincode}
-                    onChange={(e) =>
-                      setNewAddressForm({
-                        ...newAddressForm,
-                        pincode: e.target.value,
-                      })
-                    }
-                  />
-                  <input
-                    required
-                    placeholder="City"
-                    className="px-4 py-2 rounded-lg text-black"
-                    value={newAddressForm.city}
-                    onChange={(e) =>
-                      setNewAddressForm({
-                        ...newAddressForm,
-                        city: e.target.value,
-                      })
-                    }
-                  />
-                  <input
-                    required
-                    placeholder="State"
-                    className="px-4 py-2 rounded-lg text-black"
-                    value={newAddressForm.state}
-                    onChange={(e) =>
-                      setNewAddressForm({
-                        ...newAddressForm,
-                        state: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Full Address"
-                  className="w-full px-4 py-2 rounded-lg text-black"
-                  value={newAddressForm.address_line}
-                  onChange={(e) =>
-                    setNewAddressForm({
-                      ...newAddressForm,
-                      address_line: e.target.value,
-                    })
-                  }
-                />
-
-                <label className="flex items-center gap-2 text-white">
-                  <input
-                    type="checkbox"
-                    checked={newAddressForm.is_default}
-                    onChange={(e) =>
-                      setNewAddressForm({
-                        ...newAddressForm,
-                        is_default: e.target.checked,
-                      })
-                    }
-                  />
-                  Make this my default address
-                </label>
-
-                <button
-                  type="submit"
-                  className="w-full bg-[#C8A962] py-2 rounded-lg font-semibold"
-                >
-                  Add Address
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* ======================== PAYMENT SECTION ======================== */}
+        {/* PAYMENT SECTION */}
         <form onSubmit={handleSubmit}>
           <div className="bg-white/10 p-6 rounded-xl backdrop-blur-md mb-6">
             <h2 className="text-2xl font-bold mb-4">Payment Method</h2>
@@ -502,10 +402,10 @@ export const Checkout = () => {
                 <input
                   type="radio"
                   name="payment"
-                  checked={paymentMethod === "razorpay"}
-                  onChange={() => setPaymentMethod("razorpay")}
+                  checked={paymentMethod === "payu"}
+                  onChange={() => setPaymentMethod("payu")}
                 />
-                Razorpay (UPI, Card, NetBanking)
+                PayU (UPI, Card, NetBanking)
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer">
@@ -522,17 +422,12 @@ export const Checkout = () => {
                   }
                 >
                   Wallet (Balance: ₹{walletBalance})
-                  {walletBalance < total && (
-                    <span className="text-red-400 ml-2 text-sm">
-                      Not enough balance
-                    </span>
-                  )}
                 </span>
               </label>
             </div>
           </div>
 
-          {/* ======================== ORDER SUMMARY ======================== */}
+          {/* ORDER SUMMARY */}
           <div className="bg-white/10 p-6 rounded-xl backdrop-blur-md">
             <h2 className="text-2xl font-bold mb-4">Order Summary</h2>
 
@@ -542,7 +437,6 @@ export const Checkout = () => {
                   src={item.product.image}
                   className="w-20 h-20 object-cover rounded-lg"
                 />
-
                 <div>
                   <p className="font-semibold">{item.product.name}</p>
                   <p className="text-white/70">Qty: {item.quantity}</p>
@@ -564,13 +458,16 @@ export const Checkout = () => {
 
             <button
               type="submit"
-              className="w-full mt-6 bg-[#C8A962] py-3 rounded-lg font-semibold"
+              disabled={processing}
+              className="w-full mt-6 bg-[#C8A962] py-3 rounded-lg font-semibold disabled:opacity-50"
             >
-              {step === 1
-                ? "Continue to Payment"
-                : paymentMethod === "wallet"
-                  ? "Pay with Wallet"
-                  : "Pay Now"}
+              {processing
+                ? "Processing..."
+                : step === 1
+                  ? "Continue to Payment"
+                  : paymentMethod === "wallet"
+                    ? "Pay with Wallet"
+                    : "Pay Now"}
             </button>
           </div>
         </form>
