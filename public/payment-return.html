@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Processing Payment...</title>
+</head>
+<body>
+  <script>
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const order_id = params.get("order_id");
+
+      // Send message to parent window (React Checkout page)
+      window.parent.postMessage({ order_id }, "*");
+    } catch (err) {
+      console.error("Payment return error:", err);
+    }
+  </script>
+
+  <p>Processing Payment...</p>
+</body>
+</html>

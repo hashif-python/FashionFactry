@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { protectedGet, protectedPost } from "../lib/protectedApi";
+
+/* Cashfree global */
+declare global {
+  interface Window {
+    Cashfree: any;
+  }
+}
 
 export const Checkout = () => {
   const navigate = useNavigate();
   const { user, setCartCount } = useAuth();
 
+  /* -----------------------------
+        STATE
+  ----------------------------- */
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,18 +25,6 @@ export const Checkout = () => {
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
 
   const [addressModalOpen, setAddressModalOpen] = useState(false);
-  const [showAddressList, setShowAddressList] = useState(false);
-
-  const [paymentMethod, setPaymentMethod] = useState("online"); // online / wallet
-  const [walletBalance, setWalletBalance] = useState(0);
-
-  const [step, setStep] = useState(1);
-  const [orderNumber, setOrderNumber] = useState("");
-
-  const [paymentStatus, setPaymentStatus] = useState<"pending" | "success" | "failed">(
-    "pending"
-  );
-
   const [newAddressForm, setNewAddressForm] = useState({
     full_name: "",
     phone: "",
@@ -38,7 +35,15 @@ export const Checkout = () => {
     is_default: false,
   });
 
-  // Load data
+  const [paymentMethod, setPaymentMethod] = useState("online");
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  const [step, setStep] = useState(1);
+  const [orderNumber, setOrderNumber] = useState("");
+
+  /* -----------------------------
+        LOAD CART & ADDRESSES
+  ----------------------------- */
   useEffect(() => {
     if (user) {
       loadCart();
@@ -70,25 +75,48 @@ export const Checkout = () => {
     if (data) setWalletBalance(Number(data.balance));
   };
 
-  // Add address
+  /* -----------------------------
+        ADD NEW ADDRESS
+  ----------------------------- */
   const handleAddAddress = async (e: any) => {
     e.preventDefault();
-
     const res = await protectedPost("address/", newAddressForm, navigate);
 
     if (res) {
-      toast.success("Address saved");
+      toast.success("Address added successfully");
+      setNewAddressForm({
+        full_name: "",
+        phone: "",
+        pincode: "",
+        address_line: "",
+        city: "",
+        state: "",
+        is_default: false,
+      });
+
       setAddressModalOpen(false);
       loadAddresses();
     }
   };
 
-  // Checkout submit
+  /* -----------------------------
+        CALCULATE TOTAL
+  ----------------------------- */
+  const total = cartItems.reduce(
+    (sum, item) =>
+      sum +
+      (item.variant.final_price || item.variant.price) * item.quantity,
+    0
+  );
+
+  /* -----------------------------
+        HANDLE CHECKOUT
+  ----------------------------- */
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     if (!selectedAddress) {
-      toast.error("Select an address");
+      toast.error("Please select a shipping address");
       return;
     }
 
@@ -97,38 +125,91 @@ export const Checkout = () => {
       return;
     }
 
-    const checkoutRes = await protectedPost(
-      "checkout/",
-      { address_id: selectedAddress.id, payment_method: paymentMethod },
-      navigate
-    );
+    if (step === 2) {
+      /* -------------------------
+          WALLET PAYMENT
+      -------------------------- */
+      if (paymentMethod === "wallet") {
+        const res = await protectedPost(
+          "checkout/",
+          { address_id: selectedAddress.id, payment_method: "wallet" },
+          navigate
+        );
 
-    if (!checkoutRes) return;
+        if (!res) return;
 
-    const backendOrderId = checkoutRes.order_id;
+        toast.success("Order placed with wallet");
+        setOrderNumber(res.order_id);
+        setStep(3);
+        return;
+      }
 
-    // WALLET PAYMENT
-    if (paymentMethod === "wallet") {
-      toast.success("Wallet payment successful");
-      setOrderNumber(backendOrderId);
-      setPaymentStatus("success");
-      setCartCount(0);
-      setStep(3);
-      return;
-    }
+      /* -------------------------
+          ONLINE PAYMENT (CASHFREE)
+      -------------------------- */
 
-    // ONLINE PAYMENT (SIMULATED)
-    if (paymentMethod === "online") {
-      toast.success("Payment Successful");
-      setOrderNumber(backendOrderId);
-      setPaymentStatus("success");
-      setCartCount(0);
-      setStep(3);
-      return;
+      // Step 1 → Create backend order
+      const checkoutRes = await protectedPost(
+        "checkout/",
+        { address_id: selectedAddress.id, payment_method: "online" },
+        navigate
+      );
+
+      if (!checkoutRes) return;
+      const backendOrderId = checkoutRes.order_id;
+
+      // Step 2 → Create Cashfree order
+      const cfRes = await protectedPost(
+        "payment/initiate/",
+        { order_id: backendOrderId },
+        navigate
+      );
+
+      if (!cfRes) {
+        toast.error("Failed to initiate Cashfree payment");
+        return;
+      }
+
+      const { payment_session_id } = cfRes;
+
+      if (!window.Cashfree) {
+        toast.error("Cashfree SDK not loaded");
+        return;
+      }
+
+      const cashfree = window.Cashfree({ mode: "sandbox" });
+
+      const options = {
+        paymentSessionId: payment_session_id,
+        redirectTarget: "_modal", // popup
+      };
+
+      cashfree.checkout(options).then(async (result: any) => {
+        console.log("Cashfree Result →", result);
+
+        // ALWAYS VERIFY ORDER ON BACKEND
+        const verifyRes = await protectedPost(
+          "payment/verify/",
+          { order_id: backendOrderId },
+          navigate
+        );
+
+        if (verifyRes?.status === "success") {
+          setOrderNumber(backendOrderId);
+          toast.success("Payment Successful!");
+          setStep(3);   // Show local success screen
+        } else {
+          toast.error("Payment Failed");
+          setStep(3);   // Still move to step 3 and show fail UI
+        }
+
+      });
     }
   };
 
-  /* EMPTY/LOADING */
+  /* -----------------------------
+        LOADING / EMPTY STATES
+  ----------------------------- */
   if (!user)
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
@@ -158,22 +239,13 @@ export const Checkout = () => {
       </div>
     );
 
-  const total = cartItems.reduce(
-    (sum, item) =>
-      sum +
-      (item.variant.final_price || item.variant.price) * item.quantity,
-    0
-  );
-
-  /* SUCCESS PAGE */
+  /* -----------------------------
+        STEP 3 — CONFIRMATION
+  ----------------------------- */
   if (step === 3)
     return (
       <div className="min-h-screen flex items-center justify-center text-white py-12">
-        <div className="bg-white/10 p-8 rounded-xl text-center max-w-md">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="w-10 h-10 text-green-700" />
-          </div>
-
+        <div className="bg-white/10 p-8 rounded-xl backdrop-blur-md text-center max-w-md">
           <h2 className="text-3xl font-bold mb-3">Order Confirmed!</h2>
           <p className="text-white/70 mb-4">Your payment was successful</p>
 
@@ -192,32 +264,25 @@ export const Checkout = () => {
       </div>
     );
 
-  /* MAIN CHECKOUT */
+  /* -----------------------------
+        MAIN UI
+  ----------------------------- */
   return (
     <div className="min-h-screen py-10 px-4 text-white">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">Checkout</h1>
 
         {/* ADDRESS SECTION */}
-        <div className="bg-white/10 p-5 rounded-xl mb-6">
-          <div className="flex justify-between">
+        <div className="bg-white/10 p-5 rounded-xl backdrop-blur-md mb-6">
+          <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Shipping Address</h2>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowAddressList(true)}
-                className="bg-[#C8A962] px-4 py-1 rounded-lg"
-              >
-                Change Address
-              </button>
-
-              <button
-                onClick={() => setAddressModalOpen(true)}
-                className="bg-white/20 px-4 py-1 rounded-lg border border-white/20"
-              >
-                Add Address
-              </button>
-            </div>
+            <button
+              onClick={() => setAddressModalOpen(true)}
+              className="bg-[#C8A962] px-4 py-1 rounded-lg"
+            >
+              Change / Add Address
+            </button>
           </div>
 
           {selectedAddress ? (
@@ -237,12 +302,10 @@ export const Checkout = () => {
 
         {/* PAYMENT SECTION */}
         <form onSubmit={handleSubmit}>
-          <div className="bg-white/10 p-6 rounded-xl mb-6">
+          <div className="bg-white/10 p-6 rounded-xl backdrop-blur-md mb-6">
             <h2 className="text-2xl font-bold mb-4">Payment Method</h2>
 
             <div className="space-y-4">
-
-              {/* ONLINE PAYMENT */}
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="radio"
@@ -250,10 +313,9 @@ export const Checkout = () => {
                   checked={paymentMethod === "online"}
                   onChange={() => setPaymentMethod("online")}
                 />
-                Online Payment
+                Online Payment (Cashfree)
               </label>
 
-              {/* WALLET PAYMENT */}
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="radio"
@@ -267,14 +329,14 @@ export const Checkout = () => {
                     walletBalance < total ? "text-white/40" : "text-white"
                   }
                 >
-                  Wallet (Balance ₹{walletBalance})
+                  Wallet (Balance: ₹{walletBalance})
                 </span>
               </label>
             </div>
           </div>
 
           {/* ORDER SUMMARY */}
-          <div className="bg-white/10 p-6 rounded-xl">
+          <div className="bg-white/10 p-6 rounded-xl backdrop-blur-md">
             <h2 className="text-2xl font-bold mb-4">Order Summary</h2>
 
             {cartItems.map((item) => (
@@ -283,9 +345,10 @@ export const Checkout = () => {
                   src={item.product.image}
                   className="w-20 h-20 object-cover rounded-lg"
                 />
+
                 <div>
                   <p className="font-semibold">{item.product.name}</p>
-                  <p>Qty: {item.quantity}</p>
+                  <p className="text-white/70">Qty: {item.quantity}</p>
                   <p className="font-bold">
                     ₹
                     {(
@@ -309,79 +372,45 @@ export const Checkout = () => {
               {step === 1
                 ? "Continue to Payment"
                 : paymentMethod === "wallet"
-                  ? "Pay With Wallet"
+                  ? "Pay with Wallet"
                   : "Pay Now"}
             </button>
           </div>
         </form>
       </div>
 
-      {/* ADDRESS LIST MODAL */}
-      {showAddressList && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[#0B2512] text-white p-6 rounded-2xl w-11/12 max-w-md relative">
+      {/* -----------------------------
+          ADDRESS MODAL
+      ----------------------------- */}
+      {addressModalOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white/10 backdrop-blur-md p-6 rounded-xl w-full max-w-md">
 
-            <button
-              className="absolute top-3 right-3 text-white text-2xl"
-              onClick={() => setShowAddressList(false)}
-            >
-              ×
-            </button>
+            <h2 className="text-2xl font-bold mb-4">Add / Select Address</h2>
 
-            <h2 className="text-2xl font-bold mb-4 text-[#C8A962]">Select Address</h2>
-
-            <div className="space-y-4 max-h-80 overflow-y-auto">
-              {addresses.map((addr: any) => (
+            {/* Existing Address List */}
+            <div className="mb-4 max-h-60 overflow-y-auto">
+              {addresses.map((addr) => (
                 <div
                   key={addr.id}
-                  onClick={() => {
-                    setSelectedAddress(addr);
-                    setShowAddressList(false);
-                  }}
-                  className={`p-4 rounded-lg border cursor-pointer ${selectedAddress?.id === addr.id
-                      ? "border-[#C8A962] bg-white/10"
-                      : "border-white/25"
+                  className={`p-3 rounded-lg mb-2 cursor-pointer ${selectedAddress?.id === addr.id
+                    ? "bg-[#C8A962]"
+                    : "bg-white/20"
                     }`}
+                  onClick={() => setSelectedAddress(addr)}
                 >
                   <p className="font-bold">{addr.full_name}</p>
-                  <p className="text-white/70">{addr.phone}</p>
-                  <p className="text-white/70">{addr.address_line}</p>
-                  <p className="text-white/60">
-                    {addr.city}, {addr.state} - {addr.pincode}
+                  <p>{addr.address_line}</p>
+                  <p>
+                    {addr.city}, {addr.state}
                   </p>
+                  <p>{addr.pincode}</p>
                 </div>
               ))}
             </div>
 
-            <button
-              onClick={() => {
-                setShowAddressList(false);
-                setAddressModalOpen(true);
-              }}
-              className="w-full mt-5 bg-[#C8A962] text-black py-3 rounded-lg font-semibold"
-            >
-              Add New Address
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ADD ADDRESS MODAL */}
-      {addressModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[#0B2512] text-white p-6 rounded-2xl w-11/12 max-w-md relative">
-
-            <button
-              className="absolute top-3 right-3 text-white text-2xl"
-              onClick={() => setAddressModalOpen(false)}
-            >
-              ×
-            </button>
-
-            <h2 className="text-2xl font-bold mb-5 text-[#C8A962]">Add / Edit Address</h2>
-
-            <form onSubmit={handleAddAddress} className="space-y-4">
-
+            {/* Add Address Form */}
+            <form onSubmit={handleAddAddress} className="space-y-3">
               <input
                 type="text"
                 placeholder="Full Name"
@@ -389,8 +418,7 @@ export const Checkout = () => {
                 onChange={(e) =>
                   setNewAddressForm({ ...newAddressForm, full_name: e.target.value })
                 }
-                className="w-full p-3 bg-white/10 border border-white/20 rounded-lg"
-                required
+                className="w-full p-2 rounded bg-white/20 text-white"
               />
 
               <input
@@ -400,8 +428,7 @@ export const Checkout = () => {
                 onChange={(e) =>
                   setNewAddressForm({ ...newAddressForm, phone: e.target.value })
                 }
-                className="w-full p-3 bg-white/10 border border-white/20 rounded-lg"
-                required
+                className="w-full p-2 rounded bg-white/20 text-white"
               />
 
               <input
@@ -411,8 +438,7 @@ export const Checkout = () => {
                 onChange={(e) =>
                   setNewAddressForm({ ...newAddressForm, pincode: e.target.value })
                 }
-                className="w-full p-3 bg-white/10 border border-white/20 rounded-lg"
-                required
+                className="w-full p-2 rounded bg-white/20 text-white"
               />
 
               <textarea
@@ -421,9 +447,8 @@ export const Checkout = () => {
                 onChange={(e) =>
                   setNewAddressForm({ ...newAddressForm, address_line: e.target.value })
                 }
-                className="w-full p-3 bg-white/10 border border-white/20 rounded-lg h-20"
-                required
-              ></textarea>
+                className="w-full p-2 rounded bg-white/20 text-white"
+              />
 
               <input
                 type="text"
@@ -432,8 +457,7 @@ export const Checkout = () => {
                 onChange={(e) =>
                   setNewAddressForm({ ...newAddressForm, city: e.target.value })
                 }
-                className="w-full p-3 bg-white/10 border border-white/20 rounded-lg"
-                required
+                className="w-full p-2 rounded bg-white/20 text-white"
               />
 
               <input
@@ -443,31 +467,23 @@ export const Checkout = () => {
                 onChange={(e) =>
                   setNewAddressForm({ ...newAddressForm, state: e.target.value })
                 }
-                className="w-full p-3 bg-white/10 border border-white/20 rounded-lg"
-                required
+                className="w-full p-2 rounded bg-white/20 text-white"
               />
-
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={newAddressForm.is_default}
-                  onChange={(e) =>
-                    setNewAddressForm({
-                      ...newAddressForm,
-                      is_default: e.target.checked,
-                    })
-                  }
-                />
-                Set as default
-              </label>
 
               <button
                 type="submit"
-                className="w-full bg-[#C8A962] text-black py-3 rounded-lg font-semibold"
+                className="w-full bg-[#C8A962] py-2 rounded-lg font-semibold"
               >
-                Save Address
+                Add Address
               </button>
             </form>
+
+            <button
+              onClick={() => setAddressModalOpen(false)}
+              className="mt-4 w-full py-2 rounded-lg font-semibold bg-red-600"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
