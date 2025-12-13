@@ -177,7 +177,7 @@ export const Checkout = () => {
         return;
       }
 
-      const cashfree = window.Cashfree({ mode: "sandbox" });
+      const cashfree = window.Cashfree({ mode: "production" });
 
       const options = {
         paymentSessionId: payment_session_id,
