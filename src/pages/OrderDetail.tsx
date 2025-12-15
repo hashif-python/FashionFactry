@@ -206,7 +206,7 @@ export const OrderDetail = () => {
             // Step 3 — Open Cashfree popup
             cashfree.checkout(options).then(async (result: any) => {
                 console.log("Cashfree Retry Result →", result);
-
+                console.log(retry_cashfree_order_id)
                 // Step 4 — Verify using retry-verify API
                 const verifyRes = await protectedPost(
                     "payment/retry-verify/",
