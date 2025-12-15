@@ -175,21 +175,21 @@ export const OrderDetail = () => {
         setRetryModalOpen(false);
 
         try {
-            // Step 1 → Ask backend for new Cashfree session
+            // Step 1 → Request new Cashfree session
             const res = await protectedPost(
                 "payment/retry/",
                 { order_id },
                 navigate
             );
-            console.log("Retry Payment Response:", res);
-            if (!res || !res.payment_session_id) {
-                toast.error("Retry payment failed");
+
+            if (!res?.payment_session_id) {
+                toast.error("Failed to start retry session");
                 return;
             }
 
-            const { payment_session_id } = res;
+            const { payment_session_id, cashfree_order_id } = res;
 
-            // Step 2 → Ensure Cashfree SDK exists
+            // Load Cashfree SDK
             if (!window.Cashfree) {
                 toast.error("Cashfree SDK not loaded");
                 return;
@@ -197,34 +197,33 @@ export const OrderDetail = () => {
 
             const cashfree = window.Cashfree({ mode: "production" });
 
-            // Step 3 → Open payment modal
             const options = {
                 paymentSessionId: payment_session_id,
                 redirectTarget: "_modal",
             };
 
+            // Step 2 → Open Cashfree popup
             cashfree.checkout(options).then(async (result: any) => {
-                console.log("Cashfree Retry Result:", result);
+                console.log("Cashfree Retry Result →", result);
 
-                // Step 4 → Always verify payment from backend
+                // Step 3 → Verify using NEW API (retry-verify)
                 const verifyRes = await protectedPost(
-                    "payment/verify/",
-                    { order_id },
+                    "payment/retry-verify/",
+                    { order_id: cashfree_order_id }, // IMPORTANT
                     navigate
                 );
 
                 if (verifyRes?.status === "success") {
                     toast.success("Payment Completed!");
                 } else {
-                    console.error("Payment verification failed:", verifyRes);
                     toast.error("Payment Failed");
                 }
 
                 loadOrder();
             });
-        } catch (error) {
-            console.error("Retry error:", error);
+        } catch (err) {
             toast.error("Retry payment failed");
+            console.error("Retry Error:", err);
         }
     };
 
