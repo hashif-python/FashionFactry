@@ -23,17 +23,18 @@ export const Checkout = () => {
 
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const [addressModalOpen, setAddressModalOpen] = useState(false);
-  const [newAddressForm, setNewAddressForm] = useState({
+  const [newAddress, setNewAddress] = useState({
     full_name: "",
     phone: "",
-    pincode: "",
     address_line: "",
     city: "",
     state: "",
-    is_default: false,
+    pincode: "",
   });
+
 
   const [paymentMethod, setPaymentMethod] = useState("online");
   const [walletBalance, setWalletBalance] = useState(0);
@@ -273,16 +274,26 @@ export const Checkout = () => {
         <h1 className="text-4xl font-bold mb-8">Checkout</h1>
 
         {/* ADDRESS SECTION */}
+        {/* ADDRESS SECTION */}
         <div className="bg-white/10 p-5 rounded-xl backdrop-blur-md mb-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Shipping Address</h2>
 
-            <button
-              onClick={() => setAddressModalOpen(true)}
-              className="bg-[#C8A962] px-4 py-1 rounded-lg"
-            >
-              Change / Add Address
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setAddressModalOpen(true);
+                  setTimeout(() => {
+                    document.getElementById("address-list")?.scrollIntoView({ behavior: "smooth" });
+                  }, 50);
+                }}
+                className="bg-[#C8A962] px-4 py-1 rounded-lg"
+              >
+                Change Address
+              </button>
+
+
+            </div>
           </div>
 
           {selectedAddress ? (
@@ -291,14 +302,14 @@ export const Checkout = () => {
               <p className="text-white/80">{selectedAddress.phone}</p>
               <p className="text-white/80">{selectedAddress.address_line}</p>
               <p className="text-white/80">
-                {selectedAddress.city}, {selectedAddress.state} -{" "}
-                {selectedAddress.pincode}
+                {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
               </p>
             </div>
           ) : (
             <p className="text-white/60 mt-3">No address selected</p>
           )}
         </div>
+
 
         {/* PAYMENT SECTION */}
         <form onSubmit={handleSubmit}>
@@ -383,110 +394,146 @@ export const Checkout = () => {
           ADDRESS MODAL
       ----------------------------- */}
       {addressModalOpen && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white/10 backdrop-blur-md p-6 rounded-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[999] p-4">
+          <div className="bg-[#1A1A1A] w-full max-w-lg rounded-2xl shadow-xl p-6 relative">
 
-            <h2 className="text-2xl font-bold mb-4">Add / Select Address</h2>
-
-            {/* Existing Address List */}
-            <div className="mb-4 max-h-60 overflow-y-auto">
-              {addresses.map((addr) => (
-                <div
-                  key={addr.id}
-                  className={`p-3 rounded-lg mb-2 cursor-pointer ${selectedAddress?.id === addr.id
-                    ? "bg-[#C8A962]"
-                    : "bg-white/20"
-                    }`}
-                  onClick={() => setSelectedAddress(addr)}
-                >
-                  <p className="font-bold">{addr.full_name}</p>
-                  <p>{addr.address_line}</p>
-                  <p>
-                    {addr.city}, {addr.state}
-                  </p>
-                  <p>{addr.pincode}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Add Address Form */}
-            <form onSubmit={handleAddAddress} className="space-y-3">
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={newAddressForm.full_name}
-                onChange={(e) =>
-                  setNewAddressForm({ ...newAddressForm, full_name: e.target.value })
-                }
-                className="w-full p-2 rounded bg-white/20 text-white"
-              />
-
-              <input
-                type="text"
-                placeholder="Phone"
-                value={newAddressForm.phone}
-                onChange={(e) =>
-                  setNewAddressForm({ ...newAddressForm, phone: e.target.value })
-                }
-                className="w-full p-2 rounded bg-white/20 text-white"
-              />
-
-              <input
-                type="text"
-                placeholder="Pincode"
-                value={newAddressForm.pincode}
-                onChange={(e) =>
-                  setNewAddressForm({ ...newAddressForm, pincode: e.target.value })
-                }
-                className="w-full p-2 rounded bg-white/20 text-white"
-              />
-
-              <textarea
-                placeholder="Address Line"
-                value={newAddressForm.address_line}
-                onChange={(e) =>
-                  setNewAddressForm({ ...newAddressForm, address_line: e.target.value })
-                }
-                className="w-full p-2 rounded bg-white/20 text-white"
-              />
-
-              <input
-                type="text"
-                placeholder="City"
-                value={newAddressForm.city}
-                onChange={(e) =>
-                  setNewAddressForm({ ...newAddressForm, city: e.target.value })
-                }
-                className="w-full p-2 rounded bg-white/20 text-white"
-              />
-
-              <input
-                type="text"
-                placeholder="State"
-                value={newAddressForm.state}
-                onChange={(e) =>
-                  setNewAddressForm({ ...newAddressForm, state: e.target.value })
-                }
-                className="w-full p-2 rounded bg-white/20 text-white"
-              />
-
-              <button
-                type="submit"
-                className="w-full bg-[#C8A962] py-2 rounded-lg font-semibold"
-              >
-                Add Address
-              </button>
-            </form>
-
+            {/* CLOSE BUTTON */}
             <button
               onClick={() => setAddressModalOpen(false)}
-              className="mt-4 w-full py-2 rounded-lg font-semibold bg-red-600"
+              className="absolute top-3 right-3 text-white/70 hover:text-white text-xl"
             >
-              Close
+              ✕
             </button>
+
+            {/* 🔥 SHOW LIST OR FORM BASED ON toggle */}
+            {!showAddForm ? (
+              <>
+                {/* ADDRESS LIST MODE */}
+                <h2 className="text-2xl font-bold text-white mb-4">Select Address</h2>
+
+                <div className="max-h-60 overflow-y-auto space-y-3">
+                  {addresses.map((addr) => (
+                    <div
+                      key={addr.id}
+                      className={`p-4 rounded-xl border transition-all cursor-pointer ${selectedAddress?.id === addr.id
+                        ? "bg-[#C8A962]/20 border-[#C8A962]"
+                        : "bg-white/10 border-white/20 hover:border-white/40"
+                        }`}
+                      onClick={() => {
+                        setSelectedAddress(addr);
+                        setAddressModalOpen(false);
+                      }}
+                    >
+                      <p className="font-bold text-white">{addr.full_name}</p>
+                      <p className="text-white/70 text-sm">{addr.phone}</p>
+                      <p className="text-white/70 text-sm">{addr.address_line}</p>
+                      <p className="text-white/70 text-sm">
+                        {addr.city}, {addr.state} - {addr.pincode}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ADD NEW ADDRESS BUTTON */}
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="w-full mt-5 py-3 bg-[#C8A962] text-black font-semibold rounded-lg"
+                >
+                  Add New Address
+                </button>
+              </>
+            ) : (
+              <>
+                {/* ADD NEW ADDRESS FORM MODE */}
+                <h2 className="text-2xl font-bold text-white mb-4">Add New Address</h2>
+
+                <form
+                  onSubmit={handleAddAddress}
+                  className="space-y-3 max-h-60 overflow-y-auto pr-1"
+                >
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    value={newAddress.full_name}
+                    onChange={(e) =>
+                      setNewAddress({ ...newAddress, full_name: e.target.value })
+                    }
+                    className="w-full p-3 rounded-lg bg-white/10 text-white"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Phone Number"
+                    value={newAddress.phone}
+                    onChange={(e) =>
+                      setNewAddress({ ...newAddress, phone: e.target.value })
+                    }
+                    className="w-full p-3 rounded-lg bg-white/10 text-white"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Address Line"
+                    value={newAddress.address_line}
+                    onChange={(e) =>
+                      setNewAddress({ ...newAddress, address_line: e.target.value })
+                    }
+                    className="w-full p-3 rounded-lg bg-white/10 text-white"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={newAddress.city}
+                    onChange={(e) =>
+                      setNewAddress({ ...newAddress, city: e.target.value })
+                    }
+                    className="w-full p-3 rounded-lg bg-white/10 text-white"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="State"
+                    value={newAddress.state}
+                    onChange={(e) =>
+                      setNewAddress({ ...newAddress, state: e.target.value })
+                    }
+                    className="w-full p-3 rounded-lg bg-white/10 text-white"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Pincode"
+                    value={newAddress.pincode}
+                    onChange={(e) =>
+                      setNewAddress({ ...newAddress, pincode: e.target.value })
+                    }
+                    className="w-full p-3 rounded-lg bg-white/10 text-white"
+                  />
+
+                  {/* SAVE BUTTON */}
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-[#C8A962] text-black font-semibold rounded-lg"
+                  >
+                    Save Address
+                  </button>
+                </form>
+
+                {/* BACK BUTTON */}
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="w-full mt-4 py-3 bg-white/20 text-white rounded-lg"
+                >
+                  ← Back to Address List
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
+
+
     </div>
   );
 };

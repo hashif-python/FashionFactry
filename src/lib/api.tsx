@@ -1,122 +1,158 @@
 import { API_BASE } from "./constants";
 
 /* --------------------------------------------------
-   Normalize paths consistently (“products/watches/”)
--------------------------------------------------- */
-function normalizePath(path: string) {
-  return path.replace(/^\//, "");
-}
-
-/* --------------------------------------------------
-   Refresh control
+   GLOBAL REFRESH MANAGEMENT (PRODUCTION SAFE)
 -------------------------------------------------- */
 let isRefreshing = false;
-let refreshPromise: Promise<any> | null = null;
+let waitingQueue: Array<(ok: boolean) => void> = [];
 
-function shouldRefresh() {
-  const last = localStorage.getItem("LAST_REFRESH");
-  if (!last) return true;
-  return Date.now() - Number(last) > 9 * 60 * 1000; // 9 minutes
+async function runRefresh(base: string) {
+  try {
+    const res = await fetch(`${base}/refresh-token/`, {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!res.ok) throw new Error("Refresh failed");
+
+    // Mark refresh success time
+    localStorage.setItem("LAST_REFRESH", Date.now().toString());
+
+    // Notify all waiting requests → refresh OK
+    waitingQueue.forEach((cb) => cb(true));
+    waitingQueue = [];
+    return true;
+
+  } catch (err) {
+    // Notify queued requests → refresh failed
+    waitingQueue.forEach((cb) => cb(false));
+    waitingQueue = [];
+    return false;
+
+  } finally {
+    isRefreshing = false;
+  }
 }
 
 /* --------------------------------------------------
-   MAIN API FETCHER (FAST, SAFE, CLEAN)
+   MAIN apiFetch FUNCTION (ALL API CALLS USE THIS)
 -------------------------------------------------- */
-export async function apiFetch(path: string, options: RequestInit = {}) {
-  // Ensure base URL always ends cleanly
-  const base = API_BASE.replace(/\/$/, "");
-  const url = `${base}/${normalizePath(path)}`;
+export async function apiFetch(path: string, options: any = {}) {
+  const base = API_BASE;
+  const cleanPath = path.replace(/^\/+/, ""); // remove leading slash
+  const url = `${base}/${cleanPath}`;
 
-  // Build headers
-  const headers = new Headers(options.headers || {});
-  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
-  }
 
-  const config: RequestInit = {
-    ...options,
-    headers,
-    credentials: "include",
+  const headers: any = {
+    "Accept": "application/json",
   };
 
-  // INITIAL REQUEST
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const config: any = {
+    method: options.method || "GET",
+    headers,
+    credentials: "include",
+    body: options.body || undefined,
+  };
+
   let res = await fetch(url, config);
 
   /* --------------------------------------------------
-     Handle 401 with optimized controlled refresh
+     HANDLE 401 → REFRESH TOKEN WORKFLOW
   -------------------------------------------------- */
-  if (res.status === 401 && shouldRefresh()) {
+  if (res.status === 401) {
+    // Start refresh only once
     if (!isRefreshing) {
       isRefreshing = true;
-
-      refreshPromise = fetch(`${base}/refresh-token/`, {
-        method: "POST",
-        credentials: "include",
-      })
-        .then((r) => {
-          if (!r.ok) throw new Error("Refresh failed");
-          localStorage.setItem("LAST_REFRESH", Date.now().toString());
-        })
-        .catch(() => {
-          // Auto logout silently when refresh fails
-          fetch(`${base}/logout/`, {
-            method: "POST",
-            credentials: "include",
-          });
-          throw new Error("Session expired");
-        })
-        .finally(() => {
-          isRefreshing = false;
-        });
+      runRefresh(base);
     }
 
-    // Wait for refresh to finish
-    await refreshPromise;
+    // Queue this request until refresh completes
+    const retryPromise = new Promise<boolean>((resolve) => {
+      waitingQueue.push(resolve);
+    });
 
-    // Retry original call (FAST)
+    const refreshSuccess = await retryPromise;
+
+    // Refresh failed → logout user
+    if (!refreshSuccess) {
+      throw { status: 401, message: "Session expired" };
+    }
+
+    // Refresh succeeded → retry request
     res = await fetch(url, config);
   }
 
   /* --------------------------------------------------
-     If STILL not ok → throw structured error
+     PARSE & RETURN JSON
   -------------------------------------------------- */
   if (!res.ok) {
-    const text = await res.text();
+    let error: any = null;
     try {
-      const json = JSON.parse(text);
-      throw { status: res.status, message: json?.message || text };
+      error = await res.json();
     } catch {
-      throw { status: res.status, message: text };
+      error = { message: "Request failed" };
     }
+
+    throw {
+      status: res.status,
+      message: error.message || "Request error",
+      error,
+    };
   }
 
-  /* --------------------------------------------------
-     Return JSON only if content-type is JSON
-  -------------------------------------------------- */
-  const contentType = res.headers.get("Content-Type") || "";
-  if (contentType.includes("application/json")) {
-    return res.json();
+  try {
+    return await res.json();
+  } catch {
+    return null;
   }
-
-  return null;
 }
 
 /* --------------------------------------------------
-   SHORTHAND HELPERS
+   SIMPLE GET WRAPPER
 -------------------------------------------------- */
-export const apiGet = (path: string) => apiFetch(path, { method: "GET" });
+export async function apiGet(path: string) {
+  return apiFetch(path, { method: "GET" });
+}
 
-export const apiPost = (path: string, body: any = {}) =>
-  apiFetch(path, {
+/* --------------------------------------------------
+   SIMPLE POST
+-------------------------------------------------- */
+export async function apiPost(path: string, data: any) {
+  return apiFetch(path, {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify(data),
   });
+}
 
-export const apiPut = (path: string, body: any = {}) =>
-  apiFetch(path, {
+/* --------------------------------------------------
+   SIMPLE PUT
+-------------------------------------------------- */
+export async function apiPut(path: string, data: any) {
+  return apiFetch(path, {
     method: "PUT",
-    body: JSON.stringify(body),
+    body: JSON.stringify(data),
   });
+}
 
-export const apiDelete = (path: string) =>
-  apiFetch(path, { method: "DELETE" });
+/* --------------------------------------------------
+   SIMPLE DELETE
+-------------------------------------------------- */
+export async function apiDelete(path: string) {
+  return apiFetch(path, {
+    method: "DELETE",
+  });
+}
+
+/* --------------------------------------------------
+   MULTIPART POST (KEEPING ORIGINAL FUNCTIONALITY)
+-------------------------------------------------- */
+export async function apiPostMultipart(path: string, formData: FormData) {
+  return apiFetch(path, {
+    method: "POST",
+    body: formData,
+  });
+}
