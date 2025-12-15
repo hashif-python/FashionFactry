@@ -181,7 +181,7 @@ export const OrderDetail = () => {
                 { order_id },
                 navigate
             );
-
+            console.log("Retry Payment Response:", res);
             if (!res || !res.payment_session_id) {
                 toast.error("Retry payment failed");
                 return;
