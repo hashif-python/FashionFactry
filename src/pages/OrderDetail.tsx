@@ -216,6 +216,7 @@ export const OrderDetail = () => {
                 if (verifyRes?.status === "success") {
                     toast.success("Payment Completed!");
                 } else {
+                    console.error("Payment verification failed:", verifyRes);
                     toast.error("Payment Failed");
                 }
 
