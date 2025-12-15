@@ -30,29 +30,12 @@ export const Login = () => {
     e.preventDefault();
     setError("");
 
-    // -----------------------------------------------------------
-    // VALIDATION FIRST (NO LOADING STATE)
-    // -----------------------------------------------------------
-    if (!localPhone.trim()) {
-      setError("Phone number is required");
-      return;
-    }
+    if (!localPhone.trim()) return setError("Phone number is required");
+    if (!password.trim()) return setError("Password is required");
+    if (!fullNumber || fullNumber.length < 7)
+      return setError("Enter a valid phone number");
 
-    if (!password.trim()) {
-      setError("Password is required");
-      return;
-    }
-
-    if (!fullNumber || fullNumber.length < 7) {
-      setError("Enter a valid phone number");
-      return;
-    }
-
-    // -----------------------------------------------------------
-    // ONLY NOW WE ENABLE LOADING
-    // -----------------------------------------------------------
     setLoading(true);
-
     const { error: loginError } = await signIn(fullNumber, password);
 
     if (loginError) {
@@ -63,33 +46,35 @@ export const Login = () => {
     }
 
     toast.success("Logged in successfully!");
-
-    // Navigate without hiding form
-    setTimeout(() => navigate("/", { replace: true }), 100);
+    setTimeout(() => navigate("/", { replace: true }), 150);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12">
-      <div className="max-w-md w-full bg-white/10 p-8 rounded-lg backdrop-blur">
-        <h2 className="text-3xl font-bold text-white mb-4">Login</h2>
+    <div className="min-h-screen flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md bg-white/10 p-6 sm:p-8 rounded-lg backdrop-blur">
+
+        <h2 className="text-3xl font-bold text-white mb-4 text-center">
+          Login
+        </h2>
 
         {error && (
-          <p className="p-3 bg-red-300 text-red-900 rounded-md">{error}</p>
+          <p className="p-3 bg-red-300 text-red-900 rounded-md text-center">
+            {error}
+          </p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+
           {/* Phone Number */}
           <div>
-            <label className="text-white text-sm mb-1 block">
-              Mobile Number
-            </label>
+            <label className="text-white text-sm mb-1 block">Mobile Number</label>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-col sm:flex-row">
               <select
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
                 disabled={loading}
-                className="w-40 p-2 rounded-md bg-white text-black"
+                className="w-full sm:w-40 p-2 rounded-md bg-white text-black"
               >
                 {COUNTRY_CODES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -106,11 +91,11 @@ export const Login = () => {
                   setLocalPhone(e.target.value.replace(/\D/g, ""))
                 }
                 placeholder="9876543210"
-                className="flex-1 p-2 rounded-md bg-white text-black"
+                className="w-full p-2 rounded-md bg-white text-black"
               />
             </div>
 
-            <p className="text-white/70 text-xs mt-1">
+            <p className="text-white/70 text-xs mt-1 break-all">
               Login as: <span className="font-semibold">{fullNumber}</span>
             </p>
           </div>
@@ -131,7 +116,7 @@ export const Login = () => {
             <button
               type="button"
               disabled={loading}
-              onClick={() => setShowPwd((v) => !v)}
+              onClick={() => setShowPwd(!showPwd)}
               className="absolute right-2 top-9 text-xs text-black"
             >
               {showPwd ? "Hide" : "Show"}
@@ -142,7 +127,7 @@ export const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#C8A962] text-white py-3 rounded-lg mt-3"
+            className="w-full bg-[#C8A962] text-white py-3 rounded-lg font-semibold"
           >
             {loading ? "Signing in…" : "Sign In"}
           </button>
@@ -158,6 +143,7 @@ export const Login = () => {
             Sign Up
           </button>
         </p>
+
       </div>
     </div>
   );
