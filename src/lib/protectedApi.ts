@@ -99,3 +99,24 @@ export async function protectedDelete(path: string, navigate: any) {
         return null;
     }
 }
+
+
+/* ---------------------------------------------
+   🔐 PROTECTED POST MULTIPART (for file uploads)
+---------------------------------------------- */
+export async function protectedPostMultipart(path: string, formData: FormData, navigate: any) {
+    try {
+        const res = await apiFetch(path, {
+            method: "POST",
+            body: formData,        // Do NOT set Content-Type → browser will set boundary
+        });
+
+        // Reset GET cache
+        Object.keys(GET_CACHE).forEach((key) => delete GET_CACHE[key]);
+
+        return res;
+    } catch (err: any) {
+        if (err.status === 401) navigate("/login");
+        return null;
+    }
+}
