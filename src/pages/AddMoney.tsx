@@ -13,46 +13,54 @@ export const AddMoneyPage = () => {
             return;
         }
 
-        // 1️⃣ Create Razorpay Order
+        // Step 1 → Create Cashfree Wallet Top-up order
         const res = await protectedPost(
             "wallet/topup/create-order/",
             { amount },
             navigate
         );
 
-        if (!res) return;
+        if (!res?.payment_session_id) {
+            toast.error("Failed to create top-up order");
+            return;
+        }
 
-        const { order_id, amount: razorAmount, key_id } = res;
+        const { payment_session_id, cashfree_order_id } = res;
+
+        // Step 2 → Load Cashfree SDK
+        if (!window.Cashfree) {
+            toast.error("Cashfree SDK not loaded");
+            return;
+        }
+
+        const cashfree = window.Cashfree({ mode: "production" });
 
         const options = {
-            key: key_id,
-            amount: razorAmount,
-            currency: "INR",
-            order_id,
-            name: "Wallet Top-up",
-            handler: async function (response: any) {
-                // 2️⃣ Verify payment on backend
-                const verifyRes = await protectedPost(
-                    "wallet/topup/verify/",
-                    {
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_signature: response.razorpay_signature,
-                        amount,
-                    },
-                    navigate
-                );
-
-                if (verifyRes) {
-                    toast.success("Money added to wallet");
-                    navigate("/wallet");
-                }
-            },
-            theme: { color: "#C8A962" },
+            paymentSessionId: payment_session_id,
+            redirectTarget: "_modal",
         };
 
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
+        // Step 3 → Open Cashfree popup
+        cashfree.checkout(options).then(async (result: any) => {
+            console.log("Wallet Top-up Result →", result);
+
+            // Step 4 → Verify wallet payment
+            const verifyRes = await protectedPost(
+                "wallet/topup/verify/",
+                {
+                    cashfree_order_id,
+                    amount
+                },
+                navigate
+            );
+
+            if (verifyRes?.status === "success") {
+                toast.success("Money added to wallet");
+                navigate("/wallet");
+            } else {
+                toast.error("Wallet top-up failed");
+            }
+        });
     };
 
     return (
