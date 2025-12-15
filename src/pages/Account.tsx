@@ -5,7 +5,7 @@ import { apiFetch } from "../lib/api";
 import { useNavigate } from "react-router-dom";
 
 export const Account = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<any>(null);
@@ -47,7 +47,7 @@ export const Account = () => {
        LOGOUT
   ------------------------------ */
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     navigate("/");
   };
 

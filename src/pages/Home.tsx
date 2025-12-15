@@ -46,6 +46,8 @@ const testimonials = [
 ];
 
 export const Home = ({ onNavigate }: HomeProps) => {
+  const navigate = useNavigate();
+
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -153,7 +155,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <button
-            onClick={() => onNavigate('watches')}
+            onClick={() => navigate('/watches')}
             className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
           >
             <div className="h-64 bg-gradient-to-br from-[#2D5550] to-[#1A3A35] flex flex-col items-center justify-center text-white p-8 relative">
@@ -167,7 +169,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
 
 
           <button
-            onClick={() => onNavigate('spectacles')}
+            onClick={() => navigate('spectacles')}
             className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
           >
             <div className="h-64 bg-gradient-to-br from-[#C8A962] to-[#b09552] flex flex-col items-center justify-center text-white p-8 relative">
@@ -181,7 +183,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
 
 
           <button
-            onClick={() => onNavigate('shoes')}
+            onClick={() => navigate('shoes')}
             className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
           >
             <div className="h-64 bg-gradient-to-br from-[#3D6B64] to-[#2D5550] flex flex-col items-center justify-center text-white p-8 relative">

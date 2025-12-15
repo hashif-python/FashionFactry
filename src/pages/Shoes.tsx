@@ -8,88 +8,151 @@ export const Shoes = () => {
   const [loading, setLoading] = useState(true);
 
   const [selectedGender, setSelectedGender] = useState("all");
+  const [sortBy, setSortBy] = useState("latest");
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    loadProducts(selectedGender);
+  }, [selectedGender, sortBy, page]);
 
-  const loadProducts = async () => {
+  const loadProducts = async (gender: string) => {
+    setLoading(true);
+
     try {
-      const data = await apiGet("products/shoes/");
-      setProducts(data);
+      let base =
+        gender === "all"
+          ? `products/shoes/`
+          : `products/search/gender/?gender=${gender}&type=shoes`;
+
+      const url = `${base}${base.includes("?") ? "&" : "?"}page=${page}`;
+      const data = await apiGet(url);
+
+      let formatted = Array.isArray(data) ? data : data?.results || [];
+      formatted = sortProducts(formatted);
+
+      setProducts((prev) =>
+        page === 1 ? formatted : [...prev, ...formatted]
+      );
+
+      setHasMore(Boolean(data?.next));
     } catch (err) {
       console.error("Error loading shoes:", err);
+      setProducts([]);
+      setHasMore(false);
     }
+
     setLoading(false);
   };
 
-  // Fake cart handler (same as watches)
-  const handleAddToCart = (id: number) => {
-    console.log("Added to cart:", id);
+  const sortProducts = (items: any[]) => {
+    switch (sortBy) {
+      case "low-high":
+        return [...items].sort(
+          (a, b) =>
+            (a.offer_price || a.original_price) -
+            (b.offer_price || b.original_price)
+        );
+      case "high-low":
+        return [...items].sort(
+          (a, b) =>
+            (b.offer_price || b.original_price) -
+            (a.offer_price || a.original_price)
+        );
+      case "rating":
+        return [...items].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      default:
+        return items;
+    }
   };
 
-  // ✔ same method signature as Watches.tsx
+  const handleGenderChange = (g: string) => {
+    setSelectedGender(g);
+    setPage(1);
+  };
+
   const handleProductClick = (id: number) => {
     navigate(`/product/${id}?type=shoes`);
   };
 
-  const processProducts = () => {
-    let result = [...products];
-
-    if (selectedGender !== "all") {
-      result = result.filter((p) => p.gender === selectedGender);
-    }
-
-    return result;
-  };
-
-  const filtered = processProducts();
-
-  if (loading)
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        Loading...
-      </div>
-    );
-
   return (
-    <div className="min-h-screen py-8 text-white">
+    <div className="min-h-screen py-4 sm:py-8 text-white page-content">
       <div className="max-w-7xl mx-auto px-4">
 
-        <h1 className="text-4xl font-bold mb-6">Shoes</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-6">Shoes</h1>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          {["all", "men", "women"].map((g) => (
-            <button
-              key={g}
-              onClick={() => setSelectedGender(g)}
-              className={`px-6 py-2 rounded-xl 
-              ${selectedGender === g ? "bg-[#C8A962]" : "bg-white/20"}`}
+        {/* FILTERS */}
+        <div className="flex flex-wrap gap-3 sm:gap-4 mb-6 items-center justify-between">
+
+          <div className="flex gap-2 sm:gap-3">
+            {["all", "men", "women", "unisex"].map((g) => (
+              <button
+                key={g}
+                onClick={() => handleGenderChange(g)}
+                className={`px-4 py-2 rounded-xl ${selectedGender === g ? "bg-[#C8A962]" : "bg-white/20"
+                  }`}
+              >
+                {g === "all" ? "All" : g.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* SORT */}
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setPage(1);
+              }}
+              className="appearance-none bg-white/10 text-white px-4 py-2 pr-10 rounded-xl border border-white/20"
             >
-              {g === "all" ? "All" : g[0].toUpperCase() + g.slice(1)}
-            </button>
-          ))}
+              <option className="text-black" value="latest">Latest</option>
+              <option className="text-black" value="low-high">
+                Price: Low → High
+              </option>
+              <option className="text-black" value="high-low">
+                Price: High → Low
+              </option>
+              <option className="text-black" value="rating">Rating</option>
+            </select>
+
+            <svg
+              className="w-5 h-5 text-white absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
+
         </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((product) => (
+        {/* GRID */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          {products.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
-              onProductClick={handleProductClick}   // ✔ same as Watches.tsx
-              onAddToCart={handleAddToCart}         // ✔ avoid errors
+              onProductClick={handleProductClick}
             />
           ))}
         </div>
 
-        {filtered.length === 0 && (
-          <p className="text-center text-white/70 mt-12">
-            No products found.
-          </p>
+        {hasMore && (
+          <div className="flex justify-center mt-10">
+            <button
+              onClick={() => setPage((prev) => prev + 1)}
+              className="px-8 py-3 bg-[#C8A962] text-black rounded-xl font-bold"
+            >
+              Load More
+            </button>
+          </div>
         )}
       </div>
     </div>

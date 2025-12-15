@@ -33,6 +33,7 @@ import { About } from "./pages/About";
 import { Terms } from "./pages/Terms";
 import { Privacy } from "./pages/Privacy";
 import { Contact } from './pages/Contact';
+import { Search } from './pages/Search';
 
 // Scroll to top on navigation
 function ScrollToTop() {
@@ -154,6 +155,8 @@ function AppShell() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/search" element={<Search />} />
+
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

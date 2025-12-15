@@ -99,18 +99,21 @@ export const Footer = () => {
               <Mail size={17} className="text-[#C8A962]" />
               admin@fashionfactory.in
             </li>
+            <li>
+              <a
+                target="_blank"
+                href="https://www.instagram.com/fashionfactry___?igsh=cDFrdG5nbjQ5OWw1&utm_source=qr"
+                className="flex items-center gap-2 hover:text-[#C8A962] transition-colors duration-300"
+              >
+                <Instagram size={20} className="text-[#C8A962]" />
+                <span>Instagram</span>
+              </a>
+            </li>
+
+
           </ul>
 
-          {/* SOCIAL ICONS */}
-          <div className="flex gap-4 mt-6">
-            <a
-              target="_blank"
-              href="https://www.instagram.com/fashionfactry___?igsh=cDFrdG5nbjQ5OWw1&utm_source=qr"
-              className="hover:text-[#C8A962] transition-colors duration-300"
-            >
-              <Instagram size={22} />
-            </a>
-          </div>
+
         </div>
       </div>
 
