@@ -174,58 +174,59 @@ export const OrderDetail = () => {
     const submitRetryPayment = async () => {
         setRetryModalOpen(false);
 
-        // Step 1 → Request backend to create NEW Cashfree session
-        const res = await protectedPost(
-            "payment/retry/",
-            { order_id },
-            navigate
-        );
-
-        if (!res) {
-            toast.error("Retry payment failed to initiate");
-            return;
-        }
-
-        const { payment_session_id } = res;
-
-        if (!payment_session_id) {
-            toast.error("Invalid session ID");
-            return;
-        }
-
-        // Step 2 → Load Cashfree SDK
-        if (!window.Cashfree) {
-            toast.error("Cashfree SDK not loaded");
-            return;
-        }
-
-        const cashfree = window.Cashfree({ mode: "production" });
-
-        // Step 3 → Open popup modal
-        const options = {
-            paymentSessionId: payment_session_id,
-            redirectTarget: "_modal",
-        };
-
-        cashfree.checkout(options).then(async (result: any) => {
-            console.log("Cashfree Retry Result →", result);
-
-            // Step 4 → Always verify payment status from backend
-            const verifyRes = await protectedPost(
-                "payment/verify/",
+        try {
+            // Step 1 → Ask backend for new Cashfree session
+            const res = await protectedPost(
+                "payment/retry/",
                 { order_id },
                 navigate
             );
 
-            if (verifyRes?.status === "success") {
-                toast.success("Payment Completed!");
-                loadOrder();
-            } else {
-                toast.error("Payment Failed");
-                loadOrder();
+            if (!res || !res.payment_session_id) {
+                toast.error("Retry payment failed");
+                return;
             }
-        });
+
+            const { payment_session_id } = res;
+
+            // Step 2 → Ensure Cashfree SDK exists
+            if (!window.Cashfree) {
+                toast.error("Cashfree SDK not loaded");
+                return;
+            }
+
+            const cashfree = window.Cashfree({ mode: "production" });
+
+            // Step 3 → Open payment modal
+            const options = {
+                paymentSessionId: payment_session_id,
+                redirectTarget: "_modal",
+            };
+
+            cashfree.checkout(options).then(async (result: any) => {
+                console.log("Cashfree Retry Result:", result);
+
+                // Step 4 → Always verify payment from backend
+                const verifyRes = await protectedPost(
+                    "payment/verify/",
+                    { order_id },
+                    navigate
+                );
+
+                if (verifyRes?.status === "success") {
+                    toast.success("Payment Completed!");
+                } else {
+                    toast.error("Payment Failed");
+                }
+
+                loadOrder();
+            });
+        } catch (error) {
+            console.error("Retry error:", error);
+            toast.error("Retry payment failed");
+        }
     };
+
 
 
     /* -------------------------------------------------------
