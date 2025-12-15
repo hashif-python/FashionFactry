@@ -166,60 +166,67 @@ export const OrderDetail = () => {
     /* -------------------------------------------------------
           PAYMENT RETRY
     ------------------------------------------------------- */
-    const loadRazorpay = () =>
-        new Promise((resolve) => {
-            if (window.Razorpay) return resolve(true);
 
-            const script = document.createElement("script");
-            script.src = "https://checkout.razorpay.com/v1/checkout.js";
-            script.onload = () => resolve(true);
-            script.onerror = () => resolve(false);
-            document.body.appendChild(script);
-        });
 
+    /* -------------------------------------------------------
+    PAYMENT RETRY (CASHFREE)
+------------------------------------------------------- */
     const submitRetryPayment = async () => {
         setRetryModalOpen(false);
 
-        const loaded = await loadRazorpay();
-        if (!loaded) {
-            toast.error("Failed to load Razorpay");
-            return;
-        }
-
+        // Step 1 → Request backend to create NEW Cashfree session
         const res = await protectedPost(
             "payment/retry/",
             { order_id },
             navigate
         );
 
-        if (!res) return;
+        if (!res) {
+            toast.error("Retry payment failed to initiate");
+            return;
+        }
 
+        const { payment_session_id } = res;
+
+        if (!payment_session_id) {
+            toast.error("Invalid session ID");
+            return;
+        }
+
+        // Step 2 → Load Cashfree SDK
+        if (!window.Cashfree) {
+            toast.error("Cashfree SDK not loaded");
+            return;
+        }
+
+        const cashfree = window.Cashfree({ mode: "production" });
+
+        // Step 3 → Open popup modal
         const options = {
-            key: res.key_id,
-            order_id: res.razorpay_order_id,
-            amount: res.amount,
-            currency: "INR",
-            name: "Payment Retry",
-            handler: async (response: any) => {
-                await protectedPost(
-                    "payment/razorpay/verify/",
-                    {
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_signature: response.razorpay_signature,
-                        order_id,
-                    },
-                    navigate
-                );
-
-                toast.success("Payment successful");
-                loadOrder();
-            },
+            paymentSessionId: payment_session_id,
+            redirectTarget: "_modal",
         };
 
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
+        cashfree.checkout(options).then(async (result: any) => {
+            console.log("Cashfree Retry Result →", result);
+
+            // Step 4 → Always verify payment status from backend
+            const verifyRes = await protectedPost(
+                "payment/verify/",
+                { order_id },
+                navigate
+            );
+
+            if (verifyRes?.status === "success") {
+                toast.success("Payment Completed!");
+                loadOrder();
+            } else {
+                toast.error("Payment Failed");
+                loadOrder();
+            }
+        });
     };
+
 
     /* -------------------------------------------------------
           TRACKING TIMELINE
