@@ -175,21 +175,22 @@ export const OrderDetail = () => {
         setRetryModalOpen(false);
 
         try {
-            // Step 1 → Request new Cashfree session
+            // Step 1 — Ask backend for new Cashfree retry session
             const res = await protectedPost(
                 "payment/retry/",
-                { order_id },
+                { order_id },    // Django internal order id
                 navigate
             );
 
-            if (!res?.payment_session_id) {
+            if (!res?.payment_session_id || !res?.cashfree_order_id) {
                 toast.error("Failed to start retry session");
                 return;
             }
 
-            const { payment_session_id, cashfree_order_id } = res;
+            const payment_session_id = res.payment_session_id;
+            const retry_cashfree_order_id = res.cashfree_order_id;
 
-            // Load Cashfree SDK
+            // Step 2 — Load Cashfree SDK
             if (!window.Cashfree) {
                 toast.error("Cashfree SDK not loaded");
                 return;
@@ -202,14 +203,14 @@ export const OrderDetail = () => {
                 redirectTarget: "_modal",
             };
 
-            // Step 2 → Open Cashfree popup
+            // Step 3 — Open Cashfree popup
             cashfree.checkout(options).then(async (result: any) => {
                 console.log("Cashfree Retry Result →", result);
 
-                // Step 3 → Verify using NEW API (retry-verify)
+                // Step 4 — Verify using retry-verify API
                 const verifyRes = await protectedPost(
                     "payment/retry-verify/",
-                    { order_id: cashfree_order_id }, // IMPORTANT
+                    { cashfree_order_id: retry_cashfree_order_id },  // IMPORTANT!
                     navigate
                 );
 
@@ -219,6 +220,7 @@ export const OrderDetail = () => {
                     toast.error("Payment Failed");
                 }
 
+                // Step 5 — Reload order on UI
                 loadOrder();
             });
         } catch (err) {
@@ -226,6 +228,7 @@ export const OrderDetail = () => {
             console.error("Retry Error:", err);
         }
     };
+
 
 
 
