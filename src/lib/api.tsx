@@ -1,133 +1,122 @@
 import { API_BASE } from "./constants";
 
+/* --------------------------------------------------
+   Normalize paths consistently (“products/watches/”)
+-------------------------------------------------- */
 function normalizePath(path: string) {
-  if (!path.startsWith("/")) path = "/" + path;
-  return path.replace(/\/{2,}/g, "/");
+  return path.replace(/^\//, "");
 }
 
+/* --------------------------------------------------
+   Refresh control
+-------------------------------------------------- */
 let isRefreshing = false;
+let refreshPromise: Promise<any> | null = null;
 
-// NEW: Global logout flag
-export let isLoggingOut = false;
-export function setLoggingOut(value: boolean) {
-  isLoggingOut = value;
+function shouldRefresh() {
+  const last = localStorage.getItem("LAST_REFRESH");
+  if (!last) return true;
+  return Date.now() - Number(last) > 9 * 60 * 1000; // 9 minutes
 }
 
+/* --------------------------------------------------
+   MAIN API FETCHER (FAST, SAFE, CLEAN)
+-------------------------------------------------- */
 export async function apiFetch(path: string, options: RequestInit = {}) {
+  // Ensure base URL always ends cleanly
+  const base = API_BASE.replace(/\/$/, "");
+  const url = `${base}/${normalizePath(path)}`;
 
-  // if (isLoggingOut) {
-  //   throw { status: 401, message: "Logging out" };
-  // }
-
-
-  const url = `${API_BASE}${normalizePath(path)}`;
-
-  const headers = options.headers
-    ? new Headers(options.headers)
-    : new Headers();
-
+  // Build headers
+  const headers = new Headers(options.headers || {});
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
-  options.credentials = "include";
-  options.headers = headers;
+  const config: RequestInit = {
+    ...options,
+    headers,
+    credentials: "include",
+  };
 
-  let res = await fetch(url, options);
+  // INITIAL REQUEST
+  let res = await fetch(url, config);
 
-  // ---------------------------------------------------
-  // ⭐ ACCESS TOKEN EXPIRED → TRY REFRESH TOKEN
-  // ---------------------------------------------------
-  if (res.status === 401) {
-
-    // ⛔ Prevent refresh loops during logout
-    if (isLoggingOut) {
-      throw { status: 401, message: "Logged out" };
-    }
-
+  /* --------------------------------------------------
+     Handle 401 with optimized controlled refresh
+  -------------------------------------------------- */
+  if (res.status === 401 && shouldRefresh()) {
     if (!isRefreshing) {
       isRefreshing = true;
 
-      const refreshRes = await fetch(
-        `${API_BASE}${normalizePath("refresh-token/")}`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
-
-      isRefreshing = false;
-
-      if (refreshRes.status !== 200) {
-
-        // Avoid infinite refresh attempts
-        isLoggingOut = true;
-
-        await fetch(`${API_BASE}${normalizePath("logout/")}`, {
-          method: "POST",
-          credentials: "include",
+      refreshPromise = fetch(`${base}/refresh-token/`, {
+        method: "POST",
+        credentials: "include",
+      })
+        .then((r) => {
+          if (!r.ok) throw new Error("Refresh failed");
+          localStorage.setItem("LAST_REFRESH", Date.now().toString());
+        })
+        .catch(() => {
+          // Auto logout silently when refresh fails
+          fetch(`${base}/logout/`, {
+            method: "POST",
+            credentials: "include",
+          });
+          throw new Error("Session expired");
+        })
+        .finally(() => {
+          isRefreshing = false;
         });
+    }
 
+    // Wait for refresh to finish
+    await refreshPromise;
 
-        throw { status: 401, message: "Session expired" };
-      }
+    // Retry original call (FAST)
+    res = await fetch(url, config);
+  }
 
-      // ⭐ REFRESH SUCCESS → retry original
-      res = await fetch(url, options);
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      res = await fetch(url, options);
+  /* --------------------------------------------------
+     If STILL not ok → throw structured error
+  -------------------------------------------------- */
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text);
+      throw { status: res.status, message: json?.message || text };
+    } catch {
+      throw { status: res.status, message: text };
     }
   }
 
-  // ---------------------------------------------------
-  // Handle Errors
-  // ---------------------------------------------------
-  if (!res.ok) {
-    const errorText = await res.text();
-    let parsedError: any = null;
-    try {
-      parsedError = JSON.parse(errorText);
-    } catch { }
-
-    throw {
-      status: res.status,
-      message: parsedError?.message || errorText,
-    };
-  }
-
-  // ---------------------------------------------------
-  // JSON only if exists
-  // ---------------------------------------------------
+  /* --------------------------------------------------
+     Return JSON only if content-type is JSON
+  -------------------------------------------------- */
   const contentType = res.headers.get("Content-Type") || "";
   if (contentType.includes("application/json")) {
-    return await res.json();
+    return res.json();
   }
 
   return null;
 }
 
-// ----------------------------------
-// Legacy compatibility
-// ----------------------------------
-export async function apiGet(path: string) {
-  return apiFetch(path, { method: "GET" });
-}
+/* --------------------------------------------------
+   SHORTHAND HELPERS
+-------------------------------------------------- */
+export const apiGet = (path: string) => apiFetch(path, { method: "GET" });
 
-export async function apiPost(path: string, body: any = {}) {
-  return apiFetch(path, {
+export const apiPost = (path: string, body: any = {}) =>
+  apiFetch(path, {
     method: "POST",
     body: JSON.stringify(body),
   });
-}
 
-export async function apiPut(path: string, body: any = {}) {
-  return apiFetch(path, {
+export const apiPut = (path: string, body: any = {}) =>
+  apiFetch(path, {
     method: "PUT",
     body: JSON.stringify(body),
   });
-}
 
-export async function apiDelete(path: string) {
-  return apiFetch(path, { method: "DELETE" });
-}
+export const apiDelete = (path: string) =>
+  apiFetch(path, { method: "DELETE" });

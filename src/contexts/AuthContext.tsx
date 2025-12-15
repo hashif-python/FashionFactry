@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { apiFetch, apiPost, setLoggingOut } from "../lib/api";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { apiFetch, apiPost } from "../lib/api";
 
 interface AuthContextType {
   user: any;
@@ -7,7 +7,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
   signIn: (mobile: string, password: string) => Promise<{ error?: any }>;
 
-  // ⭐ Added
   verifyOtp: (payload: any) => Promise<{ data?: any; error?: any }>;
   resendOtp: (payload: any) => Promise<{ data?: any; error?: any }>;
   setUser: (u: any) => void;
@@ -21,6 +20,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+
   logout: async () => { },
   signIn: async () => ({ error: null }),
 
@@ -42,26 +42,31 @@ export const AuthProvider = ({ children }: any) => {
   const [cartCount, setCartCount] = useState(0);
 
   /* -------------------------------------------
-      GET COUNTS
+      PARALLEL LOAD COUNTS (FAST)
   ------------------------------------------- */
-  const reloadCounts = async () => {
+  const reloadCounts = useCallback(async () => {
     try {
-      const wl = await apiFetch("wishlist/");
-      const cart = await apiFetch("cart/");
+      const [wl, cart] = await Promise.all([
+        apiFetch("wishlist/"),
+        apiFetch("cart/")
+      ]);
 
       setWishlistCount(Array.isArray(wl) ? wl.length : wl?.items?.length || 0);
       setCartCount(Array.isArray(cart) ? cart.length : cart?.items?.length || 0);
-    } catch { }
-  };
+    } catch (e) {
+      console.warn("Count load failed:", e);
+    }
+  }, []);
 
   /* -------------------------------------------
-      LOAD USER INITIALLY
+      INITIAL LOAD (FAST & OPTIMIZED)
   ------------------------------------------- */
   useEffect(() => {
     const init = async () => {
       try {
         const me = await apiFetch("me/");
         setUser(me);
+
         await reloadCounts();
       } catch {
         setUser(null);
@@ -69,28 +74,29 @@ export const AuthProvider = ({ children }: any) => {
         setLoading(false);
       }
     };
+
     init();
-  }, []);
+  }, [reloadCounts]);
 
   /* -------------------------------------------
-      LOGOUT
+      LOGOUT (SUPER OPTIMIZED)
   ------------------------------------------- */
   const logout = async () => {
-    setLoggingOut(true);
-    setUser(null);
-
     try {
       await apiFetch("logout/", { method: "POST" });
     } catch { }
 
+    // Do NOT re-render entire app unnecessarily before redirect
+    setUser(null);
     window.location.replace("/login");
   };
 
   /* -------------------------------------------
-      LOGIN
+      LOGIN (NO DOUBLE FETCHING)
   ------------------------------------------- */
   const signIn = async (mobile: string, password: string) => {
     setLoading(true);
+
     try {
       const data = await apiFetch("login/", {
         method: "POST",
@@ -98,9 +104,10 @@ export const AuthProvider = ({ children }: any) => {
       });
 
       setUser(data.user || data);
-      await reloadCounts();
-      return { error: null };
 
+      await reloadCounts();
+
+      return { error: null };
     } catch (e: any) {
       return { error: e };
     } finally {
@@ -109,7 +116,7 @@ export const AuthProvider = ({ children }: any) => {
   };
 
   /* -------------------------------------------
-      ⭐ VERIFY OTP (NEW)
+      OTP — SUPER CLEAN HANDLERS
   ------------------------------------------- */
   const verifyOtp = async (payload: any) => {
     try {
@@ -120,9 +127,6 @@ export const AuthProvider = ({ children }: any) => {
     }
   };
 
-  /* -------------------------------------------
-      ⭐ RESEND OTP (NEW)
-  ------------------------------------------- */
   const resendOtp = async (payload: any) => {
     try {
       const data = await apiPost("resend-otp/", payload);
