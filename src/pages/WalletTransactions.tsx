@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { protectedGet } from "../lib/protectedApi";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
 
 export const WalletTransactionsPage = () => {
     const [txns, setTxns] = useState([]);
@@ -18,7 +18,19 @@ export const WalletTransactionsPage = () => {
 
     return (
         <div className="min-h-screen p-6 text-white">
-            <h1 className="text-3xl font-bold mb-6">Transactions</h1>
+
+            {/* Header with Go to Wallet Link */}
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">Transactions</h1>
+
+                <button
+                    onClick={() => navigate("/wallet")}
+                    className="flex items-center gap-2 bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold"
+                >
+                    <Wallet className="w-5 h-5" />
+                    Wallet
+                </button>
+            </div>
 
             {txns.length === 0 ? (
                 <p className="text-white/60">No transactions found</p>
@@ -44,7 +56,9 @@ export const WalletTransactionsPage = () => {
                                 )}
 
                                 <p
-                                    className={`text-xl font-bold ${t.type === "credit" ? "text-green-400" : "text-red-400"
+                                    className={`text-xl font-bold ${t.type === "credit"
+                                        ? "text-green-400"
+                                        : "text-red-400"
                                         }`}
                                 >
                                     {t.type === "credit" ? "+" : "-"} ₹{t.amount}

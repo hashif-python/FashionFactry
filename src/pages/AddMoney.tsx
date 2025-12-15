@@ -37,7 +37,7 @@ export const AddMoneyPage = () => {
 
         const options = {
             paymentSessionId: payment_session_id,
-            redirectTarget: "_self",
+            redirectTarget: "_modal",
         };
 
         // Step 3 → Open Cashfree popup
