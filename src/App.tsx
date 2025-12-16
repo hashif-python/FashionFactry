@@ -34,6 +34,7 @@ import { Terms } from "./pages/Terms";
 import { Privacy } from "./pages/Privacy";
 import { Contact } from './pages/Contact';
 import { Search } from './pages/Search';
+import { BuyNowCheckout } from './pages/BuyNowCheckout'
 
 // Scroll to top on navigation
 function ScrollToTop() {
@@ -156,6 +157,8 @@ function AppShell() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/checkout/buy-now" element={<BuyNowCheckout />} />
+
 
 
           {/* Fallback */}

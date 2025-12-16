@@ -442,9 +442,27 @@ export const ProductDetail = () => {
           </div>
 
           {/* BUY NOW */}
-          <button className="w-full bg-white text-black py-4 rounded-lg border border-[#C8A962] font-semibold">
+          <button
+            onClick={() => {
+              if (!selectedVariant) {
+                toast.error("Select a variant");
+                return;
+              }
+
+              navigate("/checkout/buy-now", {
+                state: {
+                  product,
+                  variant: selectedVariant,
+                  quantity,
+                  type,
+                },
+              });
+            }}
+            className="w-full bg-white text-black py-4 rounded-lg border border-[#C8A962] font-semibold"
+          >
             Buy Now
           </button>
+
 
         </div>
       </div>
