@@ -175,6 +175,7 @@ export const ProductDetail = () => {
 
   const variants = product.variants || [];
 
+
   const handleVariantSelect = (v: any) => {
     setSelectedVariant(v);
     setQuantity(1);
@@ -348,7 +349,7 @@ export const ProductDetail = () => {
                     {/* SPECTACLE */}
                     {v.variant_type === "spectacle" && (
                       <p className="font-semibold">
-                        {v.frame_color} - With Box {v.box}
+                        {v.frame_color} - {v.box === true ? "With Box" : "Without Box"}
                       </p>
                     )}
 
