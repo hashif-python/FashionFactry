@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { GoogleLogin } from "@react-oauth/google";
 import { apiPost } from "../lib/api";
 
+
 const COUNTRY_CODES = [
   { code: "91", name: "India (+91)" },
   { code: "1", name: "USA (+1)" },
@@ -16,7 +17,7 @@ const COUNTRY_CODES = [
 ];
 
 export const Login = () => {
-  const { signIn } = useAuth();
+  const { signIn, setUser } = useAuth();
   const navigate = useNavigate();
 
   const [countryCode, setCountryCode] = useState("91");
@@ -146,6 +147,9 @@ export const Login = () => {
                 await apiPost("auth/google/", {
                   token: cred.credential,
                 });
+
+                const me = await apiPost("me/", {}); // OR apiFetch("me/")
+                setUser(me);
 
                 toast.success("Logged in with Google");
 
