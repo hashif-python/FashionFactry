@@ -26,45 +26,50 @@ export const Search = () => {
             setResults(res.results || []);
         } catch (err) {
             console.error("Search error:", err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
+    /* ✅ FIXED NAVIGATION */
     const goToDetail = (item: any) => {
-        const type = item.product_type; // watch, shoe, spectacle
-
-        navigate(`/product/${type}/${item.id}`);
+        const type = item.product_type; // watch | shoes | spectacles
+        navigate(`/product/${item.id}?type=${type}`);
     };
 
     return (
         <div className="min-h-screen py-6 px-4 text-white">
             <div className="max-w-6xl mx-auto">
 
-                {/* SEARCH HEADER */}
+                {/* HEADER */}
                 <div className="flex items-center gap-3 mb-6">
                     <SearchIcon className="w-6 h-6 text-white" />
-                    <h1 className="text-2xl font-bold">Search results for: {query}</h1>
+                    <h1 className="text-2xl font-bold">
+                        Search results for: {query}
+                    </h1>
                 </div>
 
                 {/* LOADING */}
                 {loading && (
-                    <div className="text-center text-white/70 text-lg">Searching...</div>
+                    <div className="text-center text-white/70 text-lg">
+                        Searching...
+                    </div>
                 )}
 
-                {/* EMPTY STATE */}
+                {/* EMPTY */}
                 {!loading && results.length === 0 && (
                     <div className="text-center text-white/60 text-lg mt-10">
                         No products found.
                     </div>
                 )}
 
-                {/* RESULTS GRID */}
+                {/* RESULTS */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {results.map((item) => (
                         <div
                             key={item.id}
-                            className="bg-white/10 rounded-xl p-3 cursor-pointer hover:scale-105 transition"
                             onClick={() => goToDetail(item)}
+                            className="bg-white/10 rounded-xl p-3 cursor-pointer hover:scale-105 transition"
                         >
                             <img
                                 src={item.image || "/no-image.png"}
@@ -90,7 +95,9 @@ export const Search = () => {
                                         )}
                                     </>
                                 ) : (
-                                    <span className="text-white/60 text-sm">No price</span>
+                                    <span className="text-white/60 text-sm">
+                                        No price
+                                    </span>
                                 )}
                             </div>
                         </div>
