@@ -40,6 +40,7 @@ export const ProductDetail = () => {
   const type = params.get("type"); // watch, shoe, spectacle
 
   const { setWishlistCount, setCartCount } = useAuth();
+  const [variantImages, setVariantImages] = useState<string[]>([]);
 
   const [product, setProduct] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,9 +65,21 @@ export const ProductDetail = () => {
     if (!id || !type) return;
 
     const loadProduct = async () => {
+
       try {
         const url = `products/${type}/${id}/`;
         const data = await apiFetch(url);
+        console.log("Product data:", data);
+        if (data.variants?.length > 0) {
+          setSelectedVariant(data.variants[0]);
+
+          const imgs =
+            data.variants[0].images?.map((i: any) => i.image_url) || [];
+
+          setVariantImages(imgs);
+          setSelectedImage(0);
+        }
+
 
         setProduct(data);
         if (data.variants?.length > 0) {
@@ -170,7 +183,10 @@ export const ProductDetail = () => {
     );
   }
 
-  const images = product.images?.map((img: any) => img.image_url) || [];
+  const images =
+    variantImages.length > 0
+      ? variantImages
+      : product.images?.map((img: any) => img.image_url) || [];
   const mainImage = images[selectedImage];
 
   const variants = product.variants || [];
@@ -179,7 +195,12 @@ export const ProductDetail = () => {
   const handleVariantSelect = (v: any) => {
     setSelectedVariant(v);
     setQuantity(1);
+
+    const imgs = v.images?.map((i: any) => i.image_url) || [];
+    setVariantImages(imgs);
+    setSelectedImage(0); // reset to first image
   };
+
 
   const finalPrice =
     selectedVariant?.final_price || selectedVariant?.price || product.offer_price;
