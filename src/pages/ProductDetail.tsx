@@ -348,7 +348,7 @@ export const ProductDetail = () => {
                     {/* SPECTACLE */}
                     {v.variant_type === "spectacle" && (
                       <p className="font-semibold">
-                        {v.frame_color} - {v.lens_power}
+                        {v.frame_color} - With Box {v.box}
                       </p>
                     )}
 
