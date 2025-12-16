@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toE164 } from "../lib/phone";
 import toast from "react-hot-toast";
 import { GoogleLogin } from "@react-oauth/google";
-import axios from 'axios';
+import { apiPost } from "../lib/api";
 
 const COUNTRY_CODES = [
   { code: "91", name: "India (+91)" },
@@ -134,17 +134,22 @@ export const Login = () => {
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
-        <div className="mt-6">
+        <div className="mt-6 flex justify-center">
           <GoogleLogin
             onSuccess={async (cred) => {
+              if (!cred.credential) {
+                toast.error("Google token missing");
+                return;
+              }
+
               try {
-                await axios.post(
-                  "/auth/google/",
-                  { token: cred.credential },
-                  { withCredentials: true }
-                );
+                await apiPost("auth/google/", {
+                  token: cred.credential,
+                });
 
                 toast.success("Logged in with Google");
+
+                // 🔥 AuthContext will auto-fetch /me on next render
                 navigate("/", { replace: true });
               } catch (err) {
                 toast.error("Google login failed");
