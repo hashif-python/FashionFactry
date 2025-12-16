@@ -1,42 +1,46 @@
 // src/App.tsx
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Toaster } from "react-hot-toast";
 
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider } from "./contexts/AuthContext";
 
-import { Header } from './components/Header';
-import { Footer } from './components/Footer';
-import { FeatureTicker } from './components/FeatureTicker';
+import { Header } from "./components/Header";
+import { Footer } from "./components/Footer";
+import { FeatureTicker } from "./components/FeatureTicker";
 
-import { Home } from './pages/Home';
-import { Watches } from './pages/Watches';
-import { Shoes } from './pages/Shoes';
-import { Spectacles } from './pages/Spectacles';
-import { ProductDetail } from './pages/ProductDetail';
-import { Cart } from './pages/Cart';
-import { Checkout } from './pages/Checkout';
-import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
-import { ForgotPassword } from './pages/ForgotPassword';
-import { Account } from './pages/Account';
-import { Orders } from './pages/Orders';
-import { Wishlist } from './pages/Wishlist';
-import { VerifyOtp } from './pages/VerifyOtp';
-import { Address } from './pages/Address';
-import { OrderDetail } from './pages/OrderDetail';
-import { RequireAuth, RequireAnon } from './routes/guards';
-import { WalletPage } from './pages/Wallet';
-import { AddMoneyPage } from './pages/AddMoney';
-import { WalletTransactionsPage } from './pages/WalletTransactions';
-import { Toaster } from 'react-hot-toast';
+import { Home } from "./pages/Home";
+import { Watches } from "./pages/Watches";
+import { Shoes } from "./pages/Shoes";
+import { Spectacles } from "./pages/Spectacles";
+import { ProductDetail } from "./pages/ProductDetail";
+import { Cart } from "./pages/Cart";
+import { Checkout } from "./pages/Checkout";
+import { Login } from "./pages/Login";
+import { Signup } from "./pages/Signup";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { Account } from "./pages/Account";
+import { Orders } from "./pages/Orders";
+import { Wishlist } from "./pages/Wishlist";
+import { VerifyOtp } from "./pages/VerifyOtp";
+import { Address } from "./pages/Address";
+import { OrderDetail } from "./pages/OrderDetail";
+import { WalletPage } from "./pages/Wallet";
+import { AddMoneyPage } from "./pages/AddMoney";
+import { WalletTransactionsPage } from "./pages/WalletTransactions";
 import { About } from "./pages/About";
 import { Terms } from "./pages/Terms";
 import { Privacy } from "./pages/Privacy";
-import { Contact } from './pages/Contact';
-import { Search } from './pages/Search';
-import { BuyNowCheckout } from './pages/BuyNowCheckout'
+import { Contact } from "./pages/Contact";
+import { Search } from "./pages/Search";
+import { BuyNowCheckout } from "./pages/BuyNowCheckout";
 
-// Scroll to top on navigation
+import { RequireAuth, RequireAnon } from "./routes/guards";
+
+// --------------------------------------
+// Scroll to top on route change
+// --------------------------------------
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -45,18 +49,21 @@ function ScrollToTop() {
   return null;
 }
 
+// --------------------------------------
+// App Layout + Routes
+// --------------------------------------
 function AppShell() {
   return (
     <div className="min-h-screen flex flex-col">
-      {/* 🔥 GLOBAL TOASTER */}
+      {/* 🔥 Global Toast */}
       <Toaster
         position="top-right"
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#1A3A35',
-            color: '#fff',
-            borderRadius: '10px',
+            background: "#1A3A35",
+            color: "#fff",
+            borderRadius: "10px",
           },
         }}
       />
@@ -74,8 +81,13 @@ function AppShell() {
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/contact" element={<Contact />} />
 
-          {/* Auth restrictions */}
+          {/* Auth */}
           <Route
             path="/login"
             element={
@@ -84,7 +96,6 @@ function AppShell() {
               </RequireAnon>
             }
           />
-
           <Route
             path="/signup"
             element={
@@ -93,7 +104,6 @@ function AppShell() {
               </RequireAnon>
             }
           />
-
           <Route
             path="/verify-otp"
             element={
@@ -102,10 +112,9 @@ function AppShell() {
               </RequireAnon>
             }
           />
-
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* Only logged-in users */}
+          {/* Protected */}
           <Route
             path="/account"
             element={
@@ -114,7 +123,6 @@ function AppShell() {
               </RequireAuth>
             }
           />
-
           <Route
             path="/orders"
             element={
@@ -131,7 +139,6 @@ function AppShell() {
               </RequireAuth>
             }
           />
-
           <Route
             path="/wishlist"
             element={
@@ -148,18 +155,39 @@ function AppShell() {
               </RequireAuth>
             }
           />
-          <Route path="/wallet" element={<WalletPage />} />
-          <Route path="/wallet/add-money" element={<AddMoneyPage />} />
-          <Route path="/wallet/transactions" element={<WalletTransactionsPage />} />
+          <Route
+            path="/wallet"
+            element={
+              <RequireAuth>
+                <WalletPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/wallet/add-money"
+            element={
+              <RequireAuth>
+                <AddMoneyPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/wallet/transactions"
+            element={
+              <RequireAuth>
+                <WalletTransactionsPage />
+              </RequireAuth>
+            }
+          />
 
-          <Route path="/about" element={<About />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/checkout/buy-now" element={<BuyNowCheckout />} />
-
-
+          <Route
+            path="/checkout/buy-now"
+            element={
+              <RequireAuth>
+                <BuyNowCheckout />
+              </RequireAuth>
+            }
+          />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -171,13 +199,18 @@ function AppShell() {
   );
 }
 
+// --------------------------------------
+// Root App
+// --------------------------------------
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <AppShell />
-      </BrowserRouter>
-    </AuthProvider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <AuthProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <AppShell />
+        </BrowserRouter>
+      </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }

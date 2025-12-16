@@ -3,6 +3,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toE164 } from "../lib/phone";
 import toast from "react-hot-toast";
+import { GoogleLogin } from "@react-oauth/google";
+import axios from 'axios';
 
 const COUNTRY_CODES = [
   { code: "91", name: "India (+91)" },
@@ -132,6 +134,28 @@ export const Login = () => {
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
+        <div className="mt-6">
+          <GoogleLogin
+            onSuccess={async (cred) => {
+              try {
+                await axios.post(
+                  "/auth/google/",
+                  { token: cred.credential },
+                  { withCredentials: true }
+                );
+
+                toast.success("Logged in with Google");
+                navigate("/", { replace: true });
+              } catch (err) {
+                toast.error("Google login failed");
+              }
+            }}
+            onError={() => {
+              toast.error("Google login failed");
+            }}
+          />
+        </div>
+
 
         <p className="text-white mt-6 text-center">
           Don’t have an account?{" "}
