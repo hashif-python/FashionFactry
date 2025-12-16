@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toE164 } from "../lib/phone";
 import toast from "react-hot-toast";
 import { GoogleLogin } from "@react-oauth/google";
-import { apiPost } from "../lib/api";
+import { apiFetch } from "../lib/api";
 
 
 const COUNTRY_CODES = [
@@ -148,7 +148,7 @@ export const Login = () => {
                   token: cred.credential,
                 });
 
-                const me = await apiPost("me/", {}); // OR apiFetch("me/")
+                const me = await apiFetch("me/");
                 setUser(me);
 
                 toast.success("Logged in with Google");
