@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 export const Shoes = () => {
   const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [selectedGender, setSelectedGender] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
@@ -15,6 +15,7 @@ export const Shoes = () => {
 
   const navigate = useNavigate();
 
+  /* ---------------- FETCH PRODUCTS ---------------- */
   useEffect(() => {
     loadProducts(selectedGender);
   }, [selectedGender, sortBy, page]);
@@ -43,11 +44,12 @@ export const Shoes = () => {
       console.error("Error loading shoes:", err);
       setProducts([]);
       setHasMore(false);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
+  /* ---------------- SORT ---------------- */
   const sortProducts = (items: any[]) => {
     switch (sortBy) {
       case "low-high":
@@ -69,9 +71,19 @@ export const Shoes = () => {
     }
   };
 
+  /* ---------------- FILTER HANDLERS ---------------- */
   const handleGenderChange = (g: string) => {
     setSelectedGender(g);
     setPage(1);
+    setProducts([]);
+    setLoading(true); // 👈 instant loader
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setPage(1);
+    setProducts([]);
+    setLoading(true); // 👈 instant loader
   };
 
   const handleProductClick = (id: number) => {
@@ -79,20 +91,30 @@ export const Shoes = () => {
   };
 
   return (
-    <div className="min-h-screen py-4 sm:py-8 text-white page-content">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen py-4 sm:py-8 text-white page-content relative">
+      <div className="max-w-7xl mx-auto px-4 relative">
+
+        {/* ---------------- LOADER OVERLAY ---------------- */}
+        {loading && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-20">
+            <div className="h-12 w-12 border-4 border-white/30 border-t-[#C8A962] rounded-full animate-spin" />
+          </div>
+        )}
 
         <h1 className="text-3xl sm:text-4xl font-bold mb-6">Shoes</h1>
 
-        {/* FILTERS */}
+        {/* ---------------- FILTER ROW ---------------- */}
         <div className="flex flex-wrap gap-3 sm:gap-4 mb-6 items-center justify-between">
 
+          {/* Gender Filter */}
           <div className="flex gap-2 sm:gap-3">
             {["all", "men", "women", "unisex"].map((g) => (
               <button
                 key={g}
                 onClick={() => handleGenderChange(g)}
-                className={`px-4 py-2 rounded-xl ${selectedGender === g ? "bg-[#C8A962]" : "bg-white/20"
+                className={`px-4 py-2 rounded-xl transition ${selectedGender === g
+                  ? "bg-[#C8A962] text-black"
+                  : "bg-white/20 hover:bg-white/30"
                   }`}
               >
                 {g === "all" ? "All" : g.toUpperCase()}
@@ -100,14 +122,11 @@ export const Shoes = () => {
             ))}
           </div>
 
-          {/* SORT */}
+          {/* Sort */}
           <div className="relative">
             <select
               value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => handleSortChange(e.target.value)}
               className="appearance-none bg-white/10 text-white px-4 py-2 pr-10 rounded-xl border border-white/20"
             >
               <option className="text-black" value="latest">Latest</option>
@@ -133,8 +152,11 @@ export const Shoes = () => {
 
         </div>
 
-        {/* GRID */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        {/* ---------------- PRODUCT GRID ---------------- */}
+        <div
+          className={`grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 ${loading ? "opacity-40 pointer-events-none" : ""
+            }`}
+        >
           {products.map((product) => (
             <ProductCard
               key={product.id}
@@ -144,16 +166,18 @@ export const Shoes = () => {
           ))}
         </div>
 
-        {hasMore && (
+        {/* ---------------- LOAD MORE ---------------- */}
+        {hasMore && !loading && (
           <div className="flex justify-center mt-10">
             <button
               onClick={() => setPage((prev) => prev + 1)}
-              className="px-8 py-3 bg-[#C8A962] text-black rounded-xl font-bold"
+              className="px-8 py-3 bg-[#C8A962] text-black rounded-xl font-bold hover:opacity-90"
             >
               Load More
             </button>
           </div>
         )}
+
       </div>
     </div>
   );
