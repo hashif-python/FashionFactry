@@ -98,6 +98,7 @@ export const Checkout = () => {
         { code: coupon },
         navigate
       );
+      console.log(coupon, res)
 
       setDiscount(res.discount);
       setFinalTotal(res.final_total);
