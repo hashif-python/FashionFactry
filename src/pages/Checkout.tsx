@@ -15,6 +15,14 @@ export const Checkout = () => {
   const navigate = useNavigate();
   const { user, setCartCount } = useAuth();
 
+
+  // ---------------- COUPON ----------------
+  const [coupon, setCoupon] = useState("");
+  const [discount, setDiscount] = useState(0);
+  const [finalTotal, setFinalTotal] = useState<number | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+
+
   /* -----------------------------
         STATE
   ----------------------------- */
@@ -76,6 +84,35 @@ export const Checkout = () => {
     if (data) setWalletBalance(Number(data.balance));
   };
 
+  const applyCoupon = async () => {
+    if (!coupon.trim()) {
+      toast.error("Enter a coupon code");
+      return;
+    }
+
+    setApplyingCoupon(true);
+
+    try {
+      const res = await protectedPost(
+        "cart/apply-coupon/",
+        { code: coupon },
+        navigate
+      );
+
+      setDiscount(res.discount);
+      setFinalTotal(res.final_total);
+
+      toast.success("Coupon applied");
+    } catch (err: any) {
+      setDiscount(0);
+      setFinalTotal(null);
+      toast.error(err?.message || "Invalid coupon");
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+
   /* -----------------------------
         ADD NEW ADDRESS
   ----------------------------- */
@@ -110,6 +147,9 @@ export const Checkout = () => {
     0
   );
 
+  const payableTotal = finalTotal !== null ? finalTotal : total;
+
+
   /* -----------------------------
         HANDLE CHECKOUT
   ----------------------------- */
@@ -133,7 +173,7 @@ export const Checkout = () => {
       if (paymentMethod === "wallet") {
         const res = await protectedPost(
           "checkout/",
-          { address_id: selectedAddress.id, payment_method: "wallet" },
+          { address_id: selectedAddress.id, payment_method: "wallet", coupon_code: coupon || null, },
           navigate
         );
 
@@ -152,7 +192,7 @@ export const Checkout = () => {
       // Step 1 → Create backend order
       const checkoutRes = await protectedPost(
         "checkout/",
-        { address_id: selectedAddress.id, payment_method: "online" },
+        { address_id: selectedAddress.id, payment_method: "online", coupon_code: coupon || null, },
         navigate
       );
 
@@ -371,9 +411,39 @@ export const Checkout = () => {
               </div>
             ))}
 
+            {/* COUPON SECTION */}
+            <div className="bg-white/10 p-4 rounded-xl mt-4">
+              <h3 className="text-lg font-semibold mb-2">Apply Coupon</h3>
+
+              <div className="flex gap-2">
+                <input
+                  value={coupon}
+                  onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+                  placeholder="COUPON CODE"
+                  className="flex-1 p-3 rounded-lg text-black"
+                />
+                <button
+                  type="button"
+                  onClick={applyCoupon}
+                  disabled={applyingCoupon}
+                  className="px-4 bg-white text-black rounded-lg"
+                >
+                  Apply
+                </button>
+              </div>
+
+              {discount > 0 && (
+                <div className="flex justify-between text-green-400 mt-2">
+                  <span>Discount</span>
+                  <span>- ₹{discount.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+
+
             <div className="flex justify-between text-xl font-bold mt-6">
               <span>Total</span>
-              <span>₹{total.toLocaleString()}</span>
+              <span>₹{payableTotal.toLocaleString()}</span>
             </div>
 
             <button
