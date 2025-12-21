@@ -1,46 +1,36 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import { apiGet } from "../lib/api";
+
+interface Banner {
+  id: number;
+  title: string;
+  image: string;
+  position: number;
+}
 
 interface HomeProps {
   onNavigate: (page: string) => void;
 }
 
-const heroSlides = [
-  {
-    title: '50% OFF on Premium Watches',
-    subtitle: 'Limited time offer',
-    image: 'https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=1200',
-  },
-  {
-    title: '20% OFF on Designer Shoes',
-    subtitle: 'Step into style',
-    image: 'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=1200',
-  },
-  {
-    title: '10% OFF on Spectacles',
-    subtitle: 'See the world clearly',
-    image: 'https://images.pexels.com/photos/701877/pexels-photo-701877.jpeg?auto=compress&cs=tinysrgb&w=1200',
-  },
-];
-
 const testimonials = [
   {
     name: 'Priya Sharma',
     rating: 5,
-    text: 'Absolutely love my new watch! The quality is exceptional and the delivery was super fast. Highly recommend FashionFactry!',
+    text: 'Absolutely love my new watch! The quality is exceptional and the delivery was super fast.',
     image: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200',
   },
   {
     name: 'Rahul Patel',
     rating: 5,
-    text: 'Best place to buy spectacles online. Great collection and the customer service is outstanding. Will definitely shop again!',
+    text: 'Best place to buy spectacles online. Great collection and service!',
     image: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200',
   },
   {
     name: 'Ananya Reddy',
     rating: 5,
-    text: 'The shoes are incredibly comfortable and stylish. Perfect fit and amazing quality. FashionFactry never disappoints!',
+    text: 'The shoes are incredibly comfortable and stylish. Perfect fit!',
     image: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200',
   },
 ];
@@ -48,22 +38,54 @@ const testimonials = [
 export const Home = ({ onNavigate }: HomeProps) => {
   const navigate = useNavigate();
 
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [loadingBanners, setLoadingBanners] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
 
+  // ---------------- FETCH BANNERS ----------------
+  /* ---------------- FETCH BANNERS ---------------- */
+  useEffect(() => {
+    loadBanners();
+  }, []);
+
+  const loadBanners = async () => {
+    setLoadingBanners(true);
+
+    try {
+      const data = await apiGet("banners/");
+      const formatted = Array.isArray(data) ? data : [];
+      const sorted = [...formatted].sort(
+        (a, b) => a.position - b.position
+      );
+
+      setBanners(sorted);
+    } catch (err) {
+      console.error("Error loading banners:", err);
+      setBanners([]);
+    } finally {
+      setLoadingBanners(false);
+    }
+  };
+
+
+  // ---------------- AUTO SLIDE ----------------
+  useEffect(() => {
+    if (!banners.length) return;
+
+    const timer = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % banners.length);
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, [banners]);
+
+  // ---------------- FIRST VISIT POPUP ----------------
   useEffect(() => {
     const hasVisited = localStorage.getItem('hasVisited');
     if (!hasVisited) {
       setShowWelcomePopup(true);
     }
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 4000);
-
-    return () => clearInterval(timer);
   }, []);
 
   const handleWelcomeClose = () => {
@@ -72,28 +94,32 @@ export const Home = ({ onNavigate }: HomeProps) => {
   };
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    setCurrentSlide(prev => (prev + 1) % banners.length);
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+    setCurrentSlide(prev => (prev - 1 + banners.length) % banners.length);
   };
 
   return (
     <div className="min-h-screen">
+
+      {/* WELCOME POPUP */}
       {showWelcomePopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center animate-slide-in shadow-2xl">
-            <h2 className="text-3xl font-bold text-[#1A3A35] mb-4">Welcome to FashionFactry!</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md text-center shadow-2xl">
+            <h2 className="text-3xl font-bold text-[#1A3A35] mb-4">
+              Welcome to FashionFactry!
+            </h2>
             <p className="text-xl text-[#C8A962] font-semibold mb-6">
               Get 10% off your first purchase
             </p>
             <p className="text-gray-600 mb-6">
-              Use code: <span className="font-bold text-[#1A3A35]">WELCOME10</span>
+              Use code: <strong>WELCOME10</strong>
             </p>
             <button
               onClick={handleWelcomeClose}
-              className="bg-[#1A3A35] text-white px-8 py-3 rounded-xl hover:bg-[#C8A962] transition-colors font-semibold"
+              className="bg-[#1A3A35] text-white px-8 py-3 rounded-xl hover:bg-[#C8A962]"
             >
               OK
             </button>
@@ -101,47 +127,52 @@ export const Home = ({ onNavigate }: HomeProps) => {
         </div>
       )}
 
+      {/* ---------------- HERO BANNER ---------------- */}
       <div className="relative h-96 md:h-[500px] overflow-hidden">
-        {heroSlides.map((slide, index) => (
+        {banners.map((banner, index) => (
           <div
-            key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 pointer-events-none ${index === currentSlide ? 'opacity-100' : 'opacity-0'
+            key={banner.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'
               }`}
           >
-
             <img
-              src={slide.image}
-              alt={slide.title}
+              src={banner.image}
+              alt={banner.title}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-[#1A3A35]/60 to-[#1A3A35]/80 flex items-center justify-center">
-              <div className="text-center text-white px-4">
-                <h1 className="text-4xl md:text-6xl font-bold mb-4">{slide.title}</h1>
-                <p className="text-xl md:text-2xl">{slide.subtitle}</p>
-              </div>
+              <h1 className="text-4xl md:text-6xl font-bold text-white text-center px-4">
+                {banner.title}
+              </h1>
             </div>
           </div>
         ))}
 
-        <button
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm hover:bg-white/30 p-3 rounded-full transition-all"
-        >
-          <ChevronLeft className="w-6 h-6 text-white" />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm hover:bg-white/30 p-3 rounded-full transition-all"
-        >
-          <ChevronRight className="w-6 h-6 text-white" />
-        </button>
+        {banners.length > 1 && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 p-3 rounded-full"
+            >
+              <ChevronLeft className="text-white" />
+            </button>
 
+            <button
+              onClick={nextSlide}
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 p-3 rounded-full"
+            >
+              <ChevronRight className="text-white" />
+            </button>
+          </>
+        )}
+
+        {/* DOTS */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-          {heroSlides.map((_, index) => (
+          {banners.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-white w-8' : 'bg-white bg-opacity-50'
+              className={`h-3 rounded-full transition-all ${index === currentSlide ? 'bg-white w-8' : 'bg-white/50 w-3'
                 }`}
             />
           ))}
