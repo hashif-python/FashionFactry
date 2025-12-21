@@ -25,6 +25,19 @@ export const BuyNowCheckout = () => {
     const [walletBalance, setWalletBalance] = useState(0);
     const [loading, setLoading] = useState(true);
 
+    const [showAddressModal, setShowAddressModal] = useState(false);
+    const [showAddAddressForm, setShowAddAddressForm] = useState(false);
+
+    const [newAddress, setNewAddress] = useState({
+        full_name: "",
+        phone: "",
+        address_line: "",
+        city: "",
+        state: "",
+        pincode: "",
+    });
+
+
     /* ---------------- VALIDATION ---------------- */
     useEffect(() => {
         if (!product || !variant || !quantity) {
@@ -52,6 +65,42 @@ export const BuyNowCheckout = () => {
         const data = await protectedGet("wallet/", navigate);
         if (data) setWalletBalance(Number(data.balance));
     };
+
+    const handleAddAddress = async (e: any) => {
+        e.preventDefault();
+
+        if (!newAddress.full_name.trim()) {
+            toast.error("Full name is required");
+            return;
+        }
+
+        if (!/^[6-9]\d{9}$/.test(newAddress.phone)) {
+            toast.error("Enter valid phone number");
+            return;
+        }
+
+        if (!/^\d{6}$/.test(newAddress.pincode)) {
+            toast.error("Enter valid pincode");
+            return;
+        }
+
+        const res = await protectedPost("address/", newAddress, navigate);
+        if (!res) return;
+
+        toast.success("Address added");
+        setShowAddAddressForm(false);
+        setNewAddress({
+            full_name: "",
+            phone: "",
+            address_line: "",
+            city: "",
+            state: "",
+            pincode: "",
+        });
+
+        loadAddresses();
+    };
+
 
     const total =
         (variant.final_price || variant.price) * quantity;
@@ -135,7 +184,17 @@ export const BuyNowCheckout = () => {
 
                 {/* ADDRESS */}
                 <div className="bg-white/10 p-6 rounded-xl mb-6">
-                    <h2 className="text-xl font-semibold mb-3">Shipping Address</h2>
+                    <div className="flex justify-between items-center mb-3">
+                        <h2 className="text-xl font-semibold">Shipping Address</h2>
+
+                        <button
+                            onClick={() => setShowAddressModal(true)}
+                            className="text-sm text-[#C8A962] underline"
+                        >
+                            Change Address
+                        </button>
+                    </div>
+
 
                     {addresses.map((addr) => (
                         <div
@@ -206,6 +265,132 @@ export const BuyNowCheckout = () => {
                 </div>
 
             </div>
+            {showAddressModal && (
+                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4">
+                    <div className="bg-[#1A1A1A] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-6">
+
+                        {/* HEADER */}
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold">
+                                {showAddAddressForm ? "Add New Address" : "Select Address"}
+                            </h3>
+                            <button onClick={() => {
+                                setShowAddressModal(false);
+                                setShowAddAddressForm(false);
+                            }}>
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* ================= ADDRESS LIST ================= */}
+                        {!showAddAddressForm && (
+                            <>
+                                {addresses.map((addr) => (
+                                    <div
+                                        key={addr.id}
+                                        onClick={() => {
+                                            setSelectedAddress(addr);
+                                            setShowAddressModal(false);
+                                        }}
+                                        className={`p-4 rounded-lg cursor-pointer border mb-3 ${selectedAddress?.id === addr.id
+                                                ? "border-[#C8A962] bg-[#C8A962]/20"
+                                                : "border-white/20"
+                                            }`}
+                                    >
+                                        <p className="font-bold">{addr.full_name}</p>
+                                        <p className="text-sm text-white/70">{addr.address_line}</p>
+                                        <p className="text-sm text-white/70">
+                                            {addr.city}, {addr.state} - {addr.pincode}
+                                        </p>
+                                    </div>
+                                ))}
+
+                                <button
+                                    onClick={() => setShowAddAddressForm(true)}
+                                    className="w-full border border-[#C8A962] text-[#C8A962] py-2 rounded-lg mt-4"
+                                >
+                                    + Add New Address
+                                </button>
+                            </>
+                        )}
+
+                        {/* ================= ADD ADDRESS FORM ================= */}
+                        {showAddAddressForm && (
+                            <>
+                                {/* BACK BUTTON */}
+                                <button
+                                    onClick={() => setShowAddAddressForm(false)}
+                                    className="mb-4 text-sm text-[#C8A962] underline"
+                                >
+                                    ← Back to Address List
+                                </button>
+
+                                <form onSubmit={handleAddAddress} className="space-y-3">
+                                    <input
+                                        placeholder="Full Name"
+                                        className="w-full p-3 rounded-lg bg-white/10"
+                                        value={newAddress.full_name}
+                                        onChange={(e) =>
+                                            setNewAddress({ ...newAddress, full_name: e.target.value })
+                                        }
+                                    />
+
+                                    <input
+                                        placeholder="Phone"
+                                        className="w-full p-3 rounded-lg bg-white/10"
+                                        value={newAddress.phone}
+                                        onChange={(e) =>
+                                            setNewAddress({ ...newAddress, phone: e.target.value })
+                                        }
+                                    />
+
+                                    <input
+                                        placeholder="Address"
+                                        className="w-full p-3 rounded-lg bg-white/10"
+                                        value={newAddress.address_line}
+                                        onChange={(e) =>
+                                            setNewAddress({ ...newAddress, address_line: e.target.value })
+                                        }
+                                    />
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <input
+                                            placeholder="City"
+                                            className="p-3 rounded-lg bg-white/10"
+                                            value={newAddress.city}
+                                            onChange={(e) =>
+                                                setNewAddress({ ...newAddress, city: e.target.value })
+                                            }
+                                        />
+                                        <input
+                                            placeholder="State"
+                                            className="p-3 rounded-lg bg-white/10"
+                                            value={newAddress.state}
+                                            onChange={(e) =>
+                                                setNewAddress({ ...newAddress, state: e.target.value })
+                                            }
+                                        />
+                                    </div>
+
+                                    <input
+                                        placeholder="Pincode"
+                                        className="w-full p-3 rounded-lg bg-white/10"
+                                        value={newAddress.pincode}
+                                        onChange={(e) =>
+                                            setNewAddress({ ...newAddress, pincode: e.target.value })
+                                        }
+                                    />
+
+                                    <button className="w-full bg-[#C8A962] text-black py-3 rounded-lg font-semibold">
+                                        Save Address
+                                    </button>
+                                </form>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

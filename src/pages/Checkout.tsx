@@ -119,24 +119,53 @@ export const Checkout = () => {
   ----------------------------- */
   const handleAddAddress = async (e: any) => {
     e.preventDefault();
-    const res = await protectedPost("address/", newAddressForm, navigate);
+
+    // -------- VALIDATION --------
+    if (!newAddress.full_name.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(newAddress.phone)) {
+      toast.error("Enter a valid 10-digit phone number");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(newAddress.pincode)) {
+      toast.error("Enter a valid 6-digit pincode");
+      return;
+    }
+
+    if (
+      !newAddress.address_line.trim() ||
+      !newAddress.city.trim() ||
+      !newAddress.state.trim()
+    ) {
+      toast.error("All address fields are required");
+      return;
+    }
+
+    // ✅ FIXED: use newAddress
+    const res = await protectedPost("address/", newAddress, navigate);
 
     if (res) {
       toast.success("Address added successfully");
-      setNewAddressForm({
+
+      setNewAddress({
         full_name: "",
         phone: "",
-        pincode: "",
         address_line: "",
         city: "",
         state: "",
-        is_default: false,
+        pincode: "",
       });
 
+      setShowAddForm(false);
       setAddressModalOpen(false);
       loadAddresses();
     }
   };
+
 
   /* -----------------------------
         CALCULATE TOTAL
@@ -466,7 +495,8 @@ export const Checkout = () => {
       ----------------------------- */}
       {addressModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[999] p-4">
-          <div className="bg-[#1A1A1A] w-full max-w-lg rounded-2xl shadow-xl p-6 relative">
+          <div className="bg-[#1A1A1A] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl p-6 relative">
+
 
             {/* CLOSE BUTTON */}
             <button
