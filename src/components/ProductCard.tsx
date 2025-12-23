@@ -1,18 +1,23 @@
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, Eye } from "lucide-react";
 
 interface ProductCardProps {
   product: any; // backend product
   onProductClick: (id: number) => void;
-  onAddToCart: (id: number) => void;
 }
 
-export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCardProps) => {
+export const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   if (!product) return null;
 
   // -----------------------------
-  //   IMAGE
+  // IMAGE
   // -----------------------------
-  const img = product.image
+  const img = product.image;
+
+  // -----------------------------
+  // VARIANT + PRICES
+  // -----------------------------
+
+
 
   // -----------------------------
   //   VARIANT + PRICES
@@ -25,11 +30,10 @@ export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCar
 
   const mrp = rawPrice;
   const hasDiscount = discount > 0;
-
   // -----------------------------
-  //   RATING (backend doesn't send rating)
+  // RATING
   // -----------------------------
-  const rating = product.rating ?? 4.5; // default rating fallback
+  const rating = product.rating ?? 4.5;
 
   return (
     <div
@@ -40,13 +44,13 @@ export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCar
       "
       onClick={() => onProductClick(product.id)}
     >
-      {/* Image */}
+      {/* IMAGE */}
       <div className="relative p-2">
         <div className="overflow-hidden rounded-2xl bg-[#0b0b0b]">
           <img
             src={img}
             alt={product.name}
-            className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full aspect-square object-cover transition-transform duration-300 hover:scale-105"
           />
         </div>
 
@@ -63,9 +67,9 @@ export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCar
         )}
       </div>
 
-      {/* Content */}
+      {/* CONTENT */}
       <div className="px-3 pb-4">
-        {/* Title */}
+        {/* TITLE */}
         <h3
           className="
             mt-1 text-white font-semibold tracking-wide uppercase
@@ -76,33 +80,35 @@ export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCar
           {product.name}
         </h3>
 
-        {/* Brand */}
+        {/* BRAND */}
         {product.brand?.name && (
           <p className="text-xs text-white/50 mt-1 uppercase">
             {product.brand.name}
           </p>
         )}
 
-        {/* Rating */}
+        {/* RATING */}
         <div className="flex items-center gap-1 mt-2">
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
               className={`w-4 h-4 ${i < Math.round(rating)
-                ? 'fill-[#C8A962] text-[#C8A962]'
-                : 'text-white/20'
+                ? "fill-[#C8A962] text-[#C8A962]"
+                : "text-white/20"
                 }`}
             />
           ))}
-          <span className="text-xs text-white/60 ml-1">({rating})</span>
+          <span className="text-xs text-white/60 ml-1">
+            ({rating})
+          </span>
         </div>
 
-        {/* Price + Cart */}
-        <div className="mt-2 flex items-end justify-between">
+        {/* PRICE + VIEW ICON */}
+        <div className="mt-3 flex items-end justify-between">
           <div className="flex flex-col">
-            {hasDiscount && mrp && (
+            {hasDiscount && rawPrice && (
               <span className="text-xs text-white/50 line-through">
-                ₹{Number(mrp).toLocaleString()}
+                ₹{rawPrice.toLocaleString()}
               </span>
             )}
             <span className="text-lg sm:text-xl font-bold text-white">
@@ -110,22 +116,23 @@ export const ProductCard = ({ product, onProductClick, onAddToCart }: ProductCar
             </span>
           </div>
 
+          {/* VIEW ICON */}
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onAddToCart(product.id);
+              onProductClick(product.id);
             }}
             className="
               inline-flex items-center justify-center
               h-10 w-10 rounded-xl
-              bg-white text-black
-              hover:bg-[#C8A962] hover:text-white
+              bg-white/20 text-white
+              hover:bg-[#C8A962] hover:text-black
               transition-colors
             "
-            aria-label="Add to cart"
-            title="Add to cart"
+            aria-label="View product"
+            title="View product"
           >
-            <ShoppingCart className="w-5 h-5" />
+            <Eye className="w-5 h-5" />
           </button>
         </div>
       </div>

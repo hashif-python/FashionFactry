@@ -387,18 +387,20 @@ export const ProductDetail = () => {
                     </label>
 
                     <select
-                      className="w-full p-3 rounded-lg bg-white/10 border border-white/20"
+                      className="w-full p-3 rounded-lg bg-transparent text-white border border-white/20
+                      focus:outline-none focus:border-[#C8A962]
+                      appearance-none"
                       value={selectedVariant?.size || ""}
                       onChange={(e) => handleSizeChange(e.target.value)}
                     >
-                      <option value="" disabled>
+                      <option value="" disabled className="bg-[#0B1D39] text-white">
                         Choose size
                       </option>
 
                       {availableSizes.map((size: string) => {
                         const stock = sizeStockMap[size] || 0;
                         return (
-                          <option key={size} value={size} disabled={stock === 0}>
+                          <option className="bg-[#0B1D39] text-white" key={size} value={size} disabled={stock === 0}>
                             EU {size} {stock === 0 ? "(Out of stock)" : `(In stock: ${stock})`}
                           </option>
                         );

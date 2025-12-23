@@ -113,8 +113,8 @@ export const Watches = () => {
                 key={g}
                 onClick={() => handleGenderChange(g)}
                 className={`px-4 py-2 rounded-xl transition ${selectedGender === g
-                    ? "bg-[#C8A962] text-black"
-                    : "bg-white/20 hover:bg-white/30"
+                  ? "bg-[#C8A962] text-black"
+                  : "bg-white/20 hover:bg-white/30"
                   }`}
               >
                 {g === "all" ? "All" : g.toUpperCase()}

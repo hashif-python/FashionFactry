@@ -1,10 +1,17 @@
-// src/App.tsx
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { useEffect } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "react-hot-toast";
 
 import { AuthProvider } from "./contexts/AuthContext";
+import { ApiLoaderProvider } from "./contexts/ApiLoaderContext";
+import { useApiLoader } from "./contexts/ApiLoaderContext";
 
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
@@ -50,6 +57,21 @@ function ScrollToTop() {
 }
 
 // --------------------------------------
+// 🔥 GLOBAL API LOADER
+// --------------------------------------
+function GlobalLoader() {
+  const { loading } = useApiLoader();
+
+  if (!loading) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+      <div className="h-14 w-14 border-4 border-white/20 border-t-[#C8A962] rounded-full animate-spin" />
+    </div>
+  );
+}
+
+// --------------------------------------
 // App Layout + Routes
 // --------------------------------------
 function AppShell() {
@@ -67,6 +89,9 @@ function AppShell() {
           },
         }}
       />
+
+      {/* 🔥 Global Loader */}
+      <GlobalLoader />
 
       <Header />
       <FeatureTicker />
@@ -205,12 +230,14 @@ function AppShell() {
 export default function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <AppShell />
-        </BrowserRouter>
-      </AuthProvider>
+      <ApiLoaderProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <AppShell />
+          </BrowserRouter>
+        </AuthProvider>
+      </ApiLoaderProvider>
     </GoogleOAuthProvider>
   );
 }

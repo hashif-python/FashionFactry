@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { apiFetch, apiPost } from "../lib/api";
+import { apiFetch, apiPost, bindGlobalLoader } from "../lib/api";
+import { useApiLoader } from "./ApiLoaderContext";
 
 interface AuthContextType {
   user: any;
@@ -41,6 +42,13 @@ export const AuthProvider = ({ children }: any) => {
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
 
+  // 🔥 GLOBAL API LOADER BIND
+  const { start, stop } = useApiLoader();
+
+  useEffect(() => {
+    bindGlobalLoader(start, stop);
+  }, [start, stop]);
+
   /* -------------------------------------------
       PARALLEL LOAD COUNTS (FAST)
   ------------------------------------------- */
@@ -59,14 +67,13 @@ export const AuthProvider = ({ children }: any) => {
   }, []);
 
   /* -------------------------------------------
-      INITIAL LOAD (FAST & OPTIMIZED)
+      INITIAL LOAD
   ------------------------------------------- */
   useEffect(() => {
     const init = async () => {
       try {
         const me = await apiFetch("me/");
         setUser(me);
-
         await reloadCounts();
       } catch {
         setUser(null);
@@ -79,20 +86,19 @@ export const AuthProvider = ({ children }: any) => {
   }, [reloadCounts]);
 
   /* -------------------------------------------
-      LOGOUT (SUPER OPTIMIZED)
+      LOGOUT
   ------------------------------------------- */
   const logout = async () => {
     try {
       await apiFetch("logout/", { method: "POST" });
     } catch { }
 
-    // Do NOT re-render entire app unnecessarily before redirect
     setUser(null);
     window.location.replace("/login");
   };
 
   /* -------------------------------------------
-      LOGIN (NO DOUBLE FETCHING)
+      LOGIN
   ------------------------------------------- */
   const signIn = async (mobile: string, password: string) => {
     setLoading(true);
@@ -104,7 +110,6 @@ export const AuthProvider = ({ children }: any) => {
       });
 
       setUser(data.user || data);
-
       await reloadCounts();
 
       return { error: null };
@@ -116,7 +121,7 @@ export const AuthProvider = ({ children }: any) => {
   };
 
   /* -------------------------------------------
-      OTP — SUPER CLEAN HANDLERS
+      OTP
   ------------------------------------------- */
   const verifyOtp = async (payload: any) => {
     try {
