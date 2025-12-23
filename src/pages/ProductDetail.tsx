@@ -69,7 +69,6 @@ export const ProductDetail = () => {
       try {
         const url = `products/${type}/${id}/`;
         const data = await apiFetch(url);
-        console.log("Product data:", data);
         if (data.variants?.length > 0) {
           setSelectedVariant(data.variants[0]);
 
@@ -191,6 +190,33 @@ export const ProductDetail = () => {
 
   const variants = product.variants || [];
 
+  // ---------- SHOES DERIVED DATA ----------
+  const shoeVariants = variants.filter((v: any) => v.variant_type === "shoe");
+
+  // unique sizes
+  const availableSizes = Array.from(
+    new Set(shoeVariants.map((v: any) => v.size))
+  );
+
+
+
+  // variants matching selected size
+  const sizeFilteredVariants = selectedVariant?.size
+    ? shoeVariants.filter((v: any) => v.size === selectedVariant.size)
+    : [];
+
+  // unique colors for selected size
+  const availableColors = Array.from(
+    new Set(sizeFilteredVariants.map((v: any) => v.color))
+  );
+
+
+  const sizeStockMap: Record<string, number> = {};
+  shoeVariants.forEach((v: any) => {
+    sizeStockMap[v.size] = (sizeStockMap[v.size] || 0) + v.stock;
+  });
+
+
 
   const handleVariantSelect = (v: any) => {
     setSelectedVariant(v);
@@ -200,6 +226,14 @@ export const ProductDetail = () => {
     setVariantImages(imgs);
     setSelectedImage(0); // reset to first image
   };
+
+  const handleSizeChange = (size: string) => {
+    const firstVariant = shoeVariants.find((v: any) => v.size === size);
+    if (firstVariant) {
+      handleVariantSelect(firstVariant);
+    }
+  };
+
 
 
   const finalPrice =
@@ -339,54 +373,119 @@ export const ProductDetail = () => {
           </p>
 
           {/* ---------------- VARIANTS ---------------- */}
+          {/* ---------------- VARIANTS ---------------- */}
           {variants.length > 0 && (
             <div className="border-t border-gray-700 pt-6 mb-6">
-              <h3 className="font-semibold mb-4">Select Variant</h3>
 
-              <div className="grid grid-cols-2 gap-3">
-                {variants.map((v: any) => (
-                  <button
-                    key={v.id}
-                    onClick={() => handleVariantSelect(v)}
-                    className={`p-3 rounded-lg border-2 text-left transition-all ${selectedVariant?.id === v.id
-                      ? "border-[#C8A962] bg-[#C8A962]/10"
-                      : "border-white/20 hover:border-[#C8A962]"
-                      }`}
-                  >
-                    {/* WATCH */}
-                    {v.variant_type === "watch" && (
-                      <p className="font-semibold">
-                        {v.strap_color} - {v.dial_size}
-                      </p>
-                    )}
+              {/* ================= SHOES ================= */}
+              {product.product_type === "shoe" && (
+                <>
+                  {/* SIZE DROPDOWN */}
+                  <div className="mb-4">
+                    <label className="block mb-2 font-semibold">
+                      Select Size
+                    </label>
 
-                    {/* SHOES */}
-                    {v.variant_type === "shoe" && (
-                      <p className="font-semibold">
-                        {v.color} - Size {v.size}
-                      </p>
-                    )}
+                    <select
+                      className="w-full p-3 rounded-lg bg-white/10 border border-white/20"
+                      value={selectedVariant?.size || ""}
+                      onChange={(e) => handleSizeChange(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Choose size
+                      </option>
 
-                    {/* SPECTACLE */}
-                    {v.variant_type === "spectacle" && (
-                      <p className="font-semibold">
-                        {v.frame_color} - {v.box === true ? "With Box" : "Without Box"}
-                      </p>
-                    )}
+                      {availableSizes.map((size: string) => {
+                        const stock = sizeStockMap[size] || 0;
+                        return (
+                          <option key={size} value={size} disabled={stock === 0}>
+                            EU {size} {stock === 0 ? "(Out of stock)" : `(In stock: ${stock})`}
+                          </option>
+                        );
+                      })}
+                    </select>
 
-                    <p className="text-xs text-gray-400 mt-1">
-                      + ₹{v.price}
-                    </p>
+                  </div>
 
-                    <div className="flex items-center gap-1 text-xs mt-1 text-gray-400">
-                      <Package className="w-3 h-3" />
-                      {v.stock} in stock
+                  {/* COLOR OPTIONS */}
+                  {availableColors.length > 0 && (
+                    <div>
+                      <label className="block mb-2 font-semibold">
+                        Available Colors
+                      </label>
+
+                      <div className="flex flex-wrap gap-3">
+                        {sizeFilteredVariants.map((v: any) => (
+                          <button
+                            key={v.id}
+                            onClick={() => handleVariantSelect(v)}
+                            disabled={v.stock === 0}
+                            className={`px-4 py-2 rounded-lg border transition-all ${selectedVariant?.id === v.id
+                              ? "border-[#C8A962] bg-[#C8A962]/20"
+                              : "border-white/20 hover:border-[#C8A962]"
+                              } ${v.stock === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
+                          >
+                            {v.color} ({v.stock})
+                          </button>
+                        ))}
+                      </div>
+
                     </div>
-                  </button>
-                ))}
-              </div>
+                  )}
+                </>
+              )}
+
+              {/* ================= WATCH / SPECTACLE (UNCHANGED) ================= */}
+              {product.product_type !== "shoe" && (
+                <>
+                  <h3 className="font-semibold mb-4">Select Variant</h3>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {variants.map((v: any) => (
+                      <button
+                        key={v.id}
+                        onClick={() => handleVariantSelect(v)}
+                        className={`p-3 rounded-lg border-2 text-left transition-all ${selectedVariant?.id === v.id
+                          ? "border-[#C8A962] bg-[#C8A962]/10"
+                          : "border-white/20 hover:border-[#C8A962]"
+                          }`}
+                      >
+                        {v.variant_type === "watch" && (
+                          <p className="font-semibold">
+                            {v.strap_color} - {v.dial_size}
+                          </p>
+                        )}
+
+                        {v.variant_type === "spectacle" && (
+                          <p className="font-semibold">
+                            {v.frame_color} - {v.box ? "With Box" : "Without Box"}
+                          </p>
+                        )}
+
+                        <p className="text-xs text-gray-400 mt-1">
+                          + ₹{v.price}
+                        </p>
+                        {selectedVariant && (
+                          <p className="text-sm text-gray-400 mt-1">
+                            {selectedVariant.stock > 0
+                              ? `Only ${selectedVariant.stock} left in stock`
+                              : "Out of stock"}
+                          </p>
+                        )}
+
+
+                        <div className="flex items-center gap-1 text-xs mt-1 text-gray-400">
+                          <Package className="w-3 h-3" />
+                          {v.stock} in stock
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
+
 
           {/* ---------------- QUANTITY ---------------- */}
           <div className="border-t border-gray-700 pt-6 mb-6">
