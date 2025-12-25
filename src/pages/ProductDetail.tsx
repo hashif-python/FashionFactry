@@ -41,6 +41,8 @@ export const ProductDetail = () => {
 
   const { setWishlistCount, setCartCount } = useAuth();
   const [variantImages, setVariantImages] = useState<string[]>([]);
+  const [hasVideo, setHasVideo] = useState(false);
+
 
   const [product, setProduct] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +78,7 @@ export const ProductDetail = () => {
             data.variants[0].images?.map((i: any) => i.image_url) || [];
 
           setVariantImages(imgs);
+          setHasVideo(Boolean(data.video));
           setSelectedImage(0);
         }
 
@@ -186,7 +189,14 @@ export const ProductDetail = () => {
     variantImages.length > 0
       ? variantImages
       : product.images?.map((img: any) => img.image_url) || [];
-  const mainImage = images[selectedImage];
+
+  // ✅ MEDIA LIST: VIDEO FIRST
+  const mediaList = [
+    ...(product.video ? [{ type: "video", src: product.video }] : []),
+    ...images.map((img: string) => ({ type: "image", src: img })),
+  ];
+
+  const selectedMedia = mediaList[selectedImage];
 
   const variants = product.variants || [];
 
@@ -304,20 +314,30 @@ export const ProductDetail = () => {
               )}
             </button>
 
-            <img
-              src={mainImage}
-              alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-150"
-              style={{
-                transform: isZoomed ? "scale(1.7)" : "scale(1)",
-                transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
-              }}
-            />
+            {selectedMedia?.type === "video" ? (
+              <video
+                src={selectedMedia.src}
+                controls
+                className="w-full h-full object-cover bg-black"
+              />
+            ) : (
+              <img
+                src={selectedMedia?.src}
+                alt={product.name}
+                className="w-full h-full object-cover transition-transform duration-150"
+                style={{
+                  transform: isZoomed ? "scale(1.7)" : "scale(1)",
+                  transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
+                }}
+              />
+            )}
+
           </div>
 
           {/* Thumbnails */}
           <div className="grid grid-cols-4 gap-3 mt-4">
-            {images.map((img: string, index: number) => (
+            {mediaList.map((media: any, index: number) => (
+
               <button
                 key={index}
                 onClick={() => setSelectedImage(index)}
@@ -326,11 +346,18 @@ export const ProductDetail = () => {
                   : "border-white/20"
                   }`}
               >
-                <img
-                  src={img}
-                  className="w-full h-20 object-cover"
-                  alt="thumb"
-                />
+                {media.type === "video" ? (
+                  <div className="w-full h-20 flex items-center justify-center bg-black text-white text-sm">
+                    ▶ Video
+                  </div>
+                ) : (
+                  <img
+                    src={media.src}
+                    className="w-full h-20 object-cover"
+                    alt="thumb"
+                  />
+                )}
+
               </button>
             ))}
           </div>
