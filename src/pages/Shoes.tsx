@@ -27,7 +27,7 @@ export const Shoes = () => {
       let base =
         gender === "all"
           ? `products/shoes/`
-          : `products/search/gender/?gender=${gender}&type=shoes`;
+          : `products/search/gender/?gender=${gender}&type=shoe`;
 
       const url = `${base}${base.includes("?") ? "&" : "?"}page=${page}`;
       const data = await apiGet(url);
