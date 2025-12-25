@@ -43,85 +43,129 @@ export const Contact = () => {
     };
 
     return (
-        <div className="min-h-screen py-16 px-6 flex items-center justify-center text-white">
-            <div className="max-w-2xl w-full bg-white/10 backdrop-blur-lg p-8 rounded-xl shadow-xl">
+        <div className="min-h-screen py-20 px-6 text-white">
+            <div className="max-w-6xl mx-auto">
 
-                <h1 className="text-4xl font-bold text-[#C8A962] mb-3">
-                    Contact Us
-                </h1>
+                {/* HEADER */}
+                <div className="text-center mb-14">
+                    <h1 className="text-4xl md:text-5xl font-bold text-[#C8A962] mb-3">
+                        Contact Us
+                    </h1>
+                    <p className="text-white/70 max-w-2xl mx-auto">
+                        Have questions, feedback, or need support?
+                        We’re here to help you with anything related to FashionFactory.
+                    </p>
+                </div>
 
-                <p className="text-white/70 mb-8">
-                    Have questions or need support? Reach out to us—our team will respond soon.
-                </p>
+                {/* CONTENT */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
 
-                <form onSubmit={submitForm} className="space-y-5">
+                    {/* LEFT: CONTACT INFO */}
+                    <div className="bg-white/5 backdrop-blur-lg p-8 rounded-xl border border-white/10 space-y-8">
 
-                    <div>
-                        <label className="block mb-2 text-sm">Full Name *</label>
-                        <input
-                            name="name"
-                            value={form.name}
-                            onChange={handleChange}
-                            required
-                            className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
-                        />
+                        <div>
+                            <h3 className="text-xl font-semibold text-[#C8A962] mb-3">
+                                Get in Touch
+                            </h3>
+                            <p className="text-white/70 text-sm leading-relaxed">
+                                Reach out to us for product inquiries, order support,
+                                partnerships, or general questions.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-[#C8A962] mb-2">
+                                Our Address
+                            </h4>
+                            <p className="text-white/80 text-sm leading-relaxed">
+                                Fashion Factry<br />
+                                Pezhummoodu<br />
+                                Poovachal P.O<br />
+                                Trivandrum – 695575
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-lg font-semibold text-[#C8A962] mb-2">
+                                Contact Details
+                            </h4>
+                            <p className="text-white/80 text-sm">📞 +91 89214 63109</p>
+                            <p className="text-white/80 text-sm">✉️ admin@fashionfactory.in</p>
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block mb-2 text-sm">Email *</label>
-                        <input
-                            name="email"
-                            type="email"
-                            value={form.email}
-                            onChange={handleChange}
-                            required
-                            className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
-                        />
+                    {/* RIGHT: CONTACT FORM */}
+                    <div className="bg-white/10 backdrop-blur-lg p-8 rounded-xl shadow-xl border border-white/10">
+                        <form onSubmit={submitForm} className="space-y-5">
+
+                            <div>
+                                <label className="block mb-2 text-sm">Full Name *</label>
+                                <input
+                                    name="name"
+                                    value={form.name}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 text-sm">Email *</label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 text-sm">Mobile *</label>
+                                <input
+                                    name="mobile"
+                                    value={form.mobile}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 text-sm">Subject *</label>
+                                <input
+                                    name="subject"
+                                    value={form.subject}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 text-sm">Message *</label>
+                                <textarea
+                                    name="message"
+                                    value={form.message}
+                                    onChange={handleChange}
+                                    rows={4}
+                                    required
+                                    className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-[#C8A962] py-3 rounded-md font-semibold text-white hover:bg-[#b29755] transition"
+                            >
+                                {loading ? "Sending..." : "Send Message"}
+                            </button>
+                        </form>
                     </div>
 
-                    <div>
-                        <label className="block mb-2 text-sm">Mobile *</label>
-                        <input
-                            name="mobile"
-                            value={form.mobile}
-                            onChange={handleChange}
-                            required
-                            className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block mb-2 text-sm">Subject *</label>
-                        <input
-                            name="subject"
-                            value={form.subject}
-                            onChange={handleChange}
-                            required
-                            className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block mb-2 text-sm">Message *</label>
-                        <textarea
-                            name="message"
-                            value={form.message}
-                            onChange={handleChange}
-                            rows={4}
-                            required
-                            className="w-full p-3 rounded-md bg-white text-black focus:ring-2 focus:ring-[#C8A962]"
-                        ></textarea>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-[#C8A962] py-3 rounded-md font-semibold text-white hover:bg-[#b29755] transition"
-                    >
-                        {loading ? "Sending..." : "Send Message"}
-                    </button>
-                </form>
-
+                </div>
             </div>
         </div>
     );

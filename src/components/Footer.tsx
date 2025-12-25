@@ -99,6 +99,8 @@ export const Footer = () => {
               <Mail size={17} className="text-[#C8A962]" />
               admin@fashionfactory.in
             </li>
+
+
             <li>
               <a
                 target="_blank"
@@ -108,6 +110,15 @@ export const Footer = () => {
                 <Instagram size={20} className="text-[#C8A962]" />
                 <span>Instagram</span>
               </a>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#C8A962]">📍</span>
+              <span className="leading-relaxed">
+                Fashion Factry,
+                Pezhummoodu,
+                Poovachal P.O,
+                Trivandrum – 695575
+              </span>
             </li>
 
 
