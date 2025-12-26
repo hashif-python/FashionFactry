@@ -27,6 +27,7 @@ import { Checkout } from "./pages/Checkout";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
 import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 import { Account } from "./pages/Account";
 import { Orders } from "./pages/Orders";
 import { Wishlist } from "./pages/Wishlist";
@@ -138,6 +139,8 @@ function AppShell() {
             }
           />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
 
           {/* Protected */}
           <Route

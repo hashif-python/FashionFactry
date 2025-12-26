@@ -135,6 +135,18 @@ export const Login = () => {
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
+
+
+        <p className="text-white mt-6 text-center">
+
+          <button
+            disabled={loading}
+            className="text-[#C8A962]"
+            onClick={() => navigate("/forgot-password")}
+          >
+            Forgot password?
+          </button>
+        </p>
         <div className="mt-6 flex justify-center">
           <GoogleLogin
             onSuccess={async (cred) => {
@@ -164,6 +176,8 @@ export const Login = () => {
             }}
           />
         </div>
+
+
 
 
         <p className="text-white mt-6 text-center">

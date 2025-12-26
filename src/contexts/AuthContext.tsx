@@ -10,6 +10,8 @@ interface AuthContextType {
 
   verifyOtp: (payload: any) => Promise<{ data?: any; error?: any }>;
   resendOtp: (payload: any) => Promise<{ data?: any; error?: any }>;
+  resetPassword: (email: string) => Promise<{ error?: any }>;
+
   setUser: (u: any) => void;
 
   wishlistCount: number;
@@ -27,12 +29,15 @@ const AuthContext = createContext<AuthContextType>({
 
   verifyOtp: async () => ({ error: null }),
   resendOtp: async () => ({ error: null }),
+  resetPassword: async () => ({ error: null }),
+
   setUser: () => { },
 
   wishlistCount: 0,
   cartCount: 0,
   setWishlistCount: () => { },
   setCartCount: () => { },
+
 });
 
 export const AuthProvider = ({ children }: any) => {
@@ -141,6 +146,23 @@ export const AuthProvider = ({ children }: any) => {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      await apiPost("password/forgot/", { email });
+      return { error: null };
+    } catch (e: any) {
+      return {
+        error: {
+          message:
+            e?.response?.data?.message ||
+            "Failed to send reset link",
+        },
+      };
+    }
+  };
+
+
+
   return (
     <AuthContext.Provider
       value={{
@@ -151,6 +173,8 @@ export const AuthProvider = ({ children }: any) => {
 
         verifyOtp,
         resendOtp,
+        resetPassword,
+
         setUser,
 
         wishlistCount,
