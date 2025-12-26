@@ -235,19 +235,12 @@ export const OrderDetail = () => {
     /* -------------------------------------------------------
           TRACKING TIMELINE
     ------------------------------------------------------- */
-    const stepOrder = [
-        "pending",
-        "processing",
-        "shipped",
-        "out_for_delivery",
-        "delivered",
-    ];
+    const stepOrder = ["pending", "processing", "shipped", "delivered"];
 
     const stepLabels: any = {
         pending: "Order Placed",
         processing: "Processing",
         shipped: "Shipped",
-        out_for_delivery: "Out for Delivery",
         delivered: "Delivered",
     };
 
@@ -255,7 +248,6 @@ export const OrderDetail = () => {
         pending: Clock3,
         processing: Truck,
         shipped: Truck,
-        out_for_delivery: PackageCheck,
         delivered: CheckCircle,
     };
 
@@ -356,6 +348,46 @@ export const OrderDetail = () => {
                         );
                     })}
                 </div>
+                {order.shipping?.tracking_url && (
+                    <div className="mt-4 p-4 rounded-lg bg-white/10 border border-white/20">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
+                            {/* Tracking ID */}
+                            <div>
+                                <p className="text-sm text-white/70">Tracking ID</p>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono text-white">
+                                        {order.shipping.tracking_number}
+                                    </span>
+
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(
+                                                order.shipping.tracking_number
+                                            );
+                                        }}
+                                        className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30"
+                                    >
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Track Button */}
+                            <a
+                                href={order.shipping.tracking_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 bg-[#C8A962] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#d8b774] whitespace-nowrap"
+                            >
+                                <PackageCheck className="w-4 h-4" />
+                                Track Order
+                            </a>
+
+                        </div>
+                    </div>
+                )}
+
             </div>
 
             {/* -------------------------------------------------------
