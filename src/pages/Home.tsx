@@ -230,7 +230,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
 
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 md:p-12 shadow-xl">
+        {/* <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 md:p-12 shadow-xl">
           <h2 className="text-3xl font-bold text-center text-white mb-4">
             What Our Customers Say
           </h2>
@@ -268,7 +268,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
