@@ -48,7 +48,11 @@ export async function protectedGet(path: string, navigate: any) {
 /* ---------------------------------------------
    🔐 PROTECTED POST
 ---------------------------------------------- */
-export async function protectedPost(path: string, body: any, navigate: any) {
+export async function protectedPost(
+    path: string,
+    body: any,
+    navigate: any
+) {
     try {
         const res = await apiFetch(path, {
             method: "POST",
@@ -60,10 +64,16 @@ export async function protectedPost(path: string, body: any, navigate: any) {
 
         return res;
     } catch (err: any) {
-        if (err.status === 401) navigate("/login");
-        return null;
+        // 🔐 Auth expired
+        if (err?.status === 401) {
+            navigate("/login");
+        }
+
+        // ✅ IMPORTANT: rethrow error so caller catch() gets it
+        throw err;
     }
 }
+
 
 /* ---------------------------------------------
    🔐 PROTECTED PUT
