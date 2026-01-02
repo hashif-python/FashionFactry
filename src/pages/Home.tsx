@@ -128,7 +128,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
       )}
 
       {/* ---------------- HERO BANNER ---------------- */}
-      <div className="relative h-96 md:h-[500px] overflow-hidden">
+      <div className="relative min-h-[60vh] md:min-h-[80vh] w-full overflow-hidden">
         {banners.map((banner, index) => (
           <div
             key={banner.id}
