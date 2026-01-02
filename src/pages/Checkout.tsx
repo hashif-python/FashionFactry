@@ -456,20 +456,27 @@ export const Checkout = () => {
             <div className="bg-white/10 p-4 rounded-xl mt-4">
               <h3 className="text-lg font-semibold mb-2">Apply Coupon</h3>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   value={coupon}
                   onChange={(e) => setCoupon(e.target.value.toUpperCase())}
                   placeholder="COUPON CODE"
-                  className="flex-1 p-3 rounded-lg text-black"
+                  className="w-full sm:flex-1 p-3 rounded-lg text-black"
                 />
+
                 <button
                   type="button"
                   onClick={applyCoupon}
                   disabled={applyingCoupon}
-                  className="px-4 bg-white text-black rounded-lg"
+                  className="
+                    w-full sm:w-auto
+                    px-5 py-3
+                    bg-white text-black
+                    rounded-lg font-semibold
+                    disabled:opacity-60
+                  "
                 >
-                  Apply
+                  {applyingCoupon ? "Applying..." : "Apply"}
                 </button>
               </div>
 
@@ -480,6 +487,7 @@ export const Checkout = () => {
                 </div>
               )}
             </div>
+
 
 
             <div className="flex justify-between text-xl font-bold mt-6">
