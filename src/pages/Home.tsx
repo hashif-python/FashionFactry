@@ -140,11 +140,12 @@ export const Home = ({ onNavigate }: HomeProps) => {
               alt={banner.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#1A3A35]/60 to-[#1A3A35]/80 flex items-center justify-center">
-              <h1 className="text-4xl md:text-6xl font-bold text-white text-center px-4">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <h1 className="text-4xl md:text-6xl font-bold text-white text-center px-4 drop-shadow-lg">
                 {banner.title}
               </h1>
             </div>
+
           </div>
         ))}
 
