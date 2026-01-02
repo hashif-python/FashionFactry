@@ -98,20 +98,31 @@ export const Checkout = () => {
         { code: coupon },
         navigate
       );
-      console.log(coupon, res)
 
-      setDiscount(res.discount);
-      setFinalTotal(res.final_total);
+      if (!res || res.discount == null || res.final_total == null) {
+        throw new Error("Invalid coupon response");
+      }
+
+      setDiscount(Number(res.discount));
+      setFinalTotal(Number(res.final_total));
 
       toast.success("Coupon applied");
     } catch (err: any) {
       setDiscount(0);
       setFinalTotal(null);
-      toast.error(err?.message || "Invalid coupon");
+
+      const apiMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Invalid coupon";
+
+      toast.error(apiMessage);
     } finally {
       setApplyingCoupon(false);
     }
   };
+
 
 
   /* -----------------------------
