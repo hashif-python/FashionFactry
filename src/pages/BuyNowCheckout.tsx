@@ -28,6 +28,13 @@ export const BuyNowCheckout = () => {
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [showAddAddressForm, setShowAddAddressForm] = useState(false);
 
+    // ---------------- COUPON ----------------
+    const [coupon, setCoupon] = useState("");
+    const [discount, setDiscount] = useState(0);
+    const [finalTotal, setFinalTotal] = useState<number | null>(null);
+    const [applyingCoupon, setApplyingCoupon] = useState(false);
+
+
     const [newAddress, setNewAddress] = useState({
         full_name: "",
         phone: "",
@@ -101,9 +108,57 @@ export const BuyNowCheckout = () => {
         loadAddresses();
     };
 
+    const applyCoupon = async () => {
+        if (!coupon.trim()) {
+            toast.error("Enter a coupon code");
+            return;
+        }
+
+        setApplyingCoupon(true);
+
+        try {
+            const res = await protectedPost(
+                "/buy-now/apply-coupon/",
+                {
+                    code: coupon,
+                    variant_id: variant.id,
+                    quantity,
+                },
+                navigate
+            );
+
+            if (!res || res.discount == null || res.final_total == null) {
+                throw new Error("Invalid coupon response");
+            }
+
+            setDiscount(Number(res.discount));
+            setFinalTotal(Number(res.final_total));
+
+            toast.success("Coupon applied");
+        } catch (err: any) {
+            setDiscount(0);
+            setFinalTotal(null);
+
+            const apiMessage =
+                err?.response?.data?.message ||
+                err?.response?.data?.detail ||
+                err?.message ||
+                "Invalid coupon";
+
+            toast.error(apiMessage);
+        } finally {
+            setApplyingCoupon(false);
+        }
+    };
 
     const total =
         (variant.final_price || variant.price) * quantity;
+
+    const baseTotal =
+        (variant.final_price || variant.price) * quantity;
+
+    const payableTotal = finalTotal !== null ? finalTotal : baseTotal;
+
 
     /* ---------------- PLACE ORDER ---------------- */
     const handlePlaceOrder = async () => {
@@ -231,7 +286,7 @@ export const BuyNowCheckout = () => {
                         <input
                             type="radio"
                             checked={paymentMethod === "wallet"}
-                            disabled={walletBalance < total}
+                            disabled={walletBalance < payableTotal}
                             onChange={() => setPaymentMethod("wallet")}
                         />
                         Wallet (₹{walletBalance})
@@ -251,10 +306,47 @@ export const BuyNowCheckout = () => {
                             <p className="font-bold">{product.name}</p>
                             <p className="text-white/70">Qty: {quantity}</p>
                             <p className="text-[#C8A962] font-bold text-lg">
-                                ₹{total.toLocaleString()}
+                                ₹{payableTotal.toLocaleString()}
                             </p>
                         </div>
                     </div>
+
+                    {/* COUPON SECTION */}
+                    <div className="bg-white/10 p-4 rounded-xl mt-4">
+                        <h3 className="text-lg font-semibold mb-2">Apply Coupon</h3>
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                                value={coupon}
+                                onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+                                placeholder="COUPON CODE"
+                                className="w-full sm:flex-1 p-3 rounded-lg text-black"
+                            />
+
+                            <button
+                                type="button"
+                                onClick={applyCoupon}
+                                disabled={applyingCoupon}
+                                className="
+                                    w-full sm:w-auto
+                                    px-5 py-3
+                                    bg-white text-black
+                                    rounded-lg font-semibold
+                                    disabled:opacity-60
+                                "
+                            >
+                                {applyingCoupon ? "Applying..." : "Apply"}
+                            </button>
+                        </div>
+
+                        {discount > 0 && (
+                            <div className="flex justify-between text-green-400 mt-2">
+                                <span>Discount</span>
+                                <span>- ₹{discount.toLocaleString()}</span>
+                            </div>
+                        )}
+                    </div>
+
 
                     <button
                         onClick={handlePlaceOrder}
@@ -293,8 +385,8 @@ export const BuyNowCheckout = () => {
                                             setShowAddressModal(false);
                                         }}
                                         className={`p-4 rounded-lg cursor-pointer border mb-3 ${selectedAddress?.id === addr.id
-                                                ? "border-[#C8A962] bg-[#C8A962]/20"
-                                                : "border-white/20"
+                                            ? "border-[#C8A962] bg-[#C8A962]/20"
+                                            : "border-white/20"
                                             }`}
                                     >
                                         <p className="font-bold">{addr.full_name}</p>
