@@ -176,6 +176,7 @@ export const BuyNowCheckout = () => {
                 quantity,
                 address_id: selectedAddress.id,
                 payment_method: paymentMethod,
+                coupon_code: coupon || null,
             },
             navigate
         );
