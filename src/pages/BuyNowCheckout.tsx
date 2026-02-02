@@ -89,7 +89,7 @@ export const BuyNowCheckout = () => {
         toast.success("Order created. Redirecting to UPI…");
 
         /* ✅ AUTO OPEN UPI APP */
-        const upiUrl = `upi://pay?pa=fashionfactry01@oksbi@bank&pn=FashionFactry&am=1&cu=INR`;
+        const upiUrl = `upi://pay?pa=fashionfactry01@oksbi&pn=FashionFactry&am=10&cu=INR`;
         window.location.href = upiUrl;
 
         /* Show Transaction ID input */
