@@ -220,8 +220,8 @@ export const BuyNowCheckout = () => {
                                     key={addr.id}
                                     onClick={() => setSelectedAddress(addr)}
                                     className={`p-4 rounded-lg cursor-pointer border mb-3 ${selectedAddress?.id === addr.id
-                                            ? "border-[#C8A962] bg-[#C8A962]/20"
-                                            : "border-white/20"
+                                        ? "border-[#C8A962] bg-[#C8A962]/20"
+                                        : "border-white/20"
                                         }`}
                                 >
                                     <p className="font-bold">{addr.full_name}</p>
@@ -249,7 +249,7 @@ export const BuyNowCheckout = () => {
                             {/* ================= COUPON ================= */}
                             <div className="bg-white/10 p-4 rounded-xl mb-4">
                                 <h3 className="font-semibold mb-2">Apply Coupon</h3>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <input
                                         value={coupon}
                                         disabled={couponApplied}
