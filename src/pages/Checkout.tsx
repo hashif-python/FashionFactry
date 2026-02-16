@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
-import { protectedGet, protectedPost } from "../lib/protectedApi";
+import {
+  protectedGet,
+  protectedPost,
+  protectedPostMultipart,
+} from "../lib/protectedApi";
 
 export const Checkout = () => {
   const navigate = useNavigate();
@@ -16,7 +20,9 @@ export const Checkout = () => {
   const [loading, setLoading] = useState(true);
 
   /* ================= PAYMENT ================= */
-  const [paymentMethod, setPaymentMethod] = useState("online");
+  const [paymentMethod, setPaymentMethod] = useState<"cashfree" | "wallet">(
+    "cashfree"
+  );
 
   /* ================= COUPON ================= */
   const [coupon, setCoupon] = useState("");
@@ -26,7 +32,7 @@ export const Checkout = () => {
 
   /* ================= UPI ================= */
   const [showUpi, setShowUpi] = useState(false);
-  const [transactionId, setTransactionId] = useState("");
+  const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
 
@@ -41,10 +47,14 @@ export const Checkout = () => {
 
   const loadCart = async () => {
     const data = await protectedGet("cart/", navigate);
-    if (data) {
-      setCartItems(data);
-      setCartCount(data.length);
+
+    if (!data || data.length === 0) {
+      navigate("/");
+      return;
     }
+
+    setCartItems(data);
+    setCartCount(data.length);
     setLoading(false);
   };
 
@@ -105,7 +115,6 @@ export const Checkout = () => {
       return;
     }
 
-    /* WALLET */
     if (paymentMethod === "wallet") {
       const res = await protectedPost(
         "checkout/",
@@ -124,30 +133,26 @@ export const Checkout = () => {
       return;
     }
 
-    /* ONLINE → SHOW UPI */
     setShowUpi(true);
     toast.success("Scan QR & complete payment");
   };
 
-  /* ================= SUBMIT TRANSACTION ================= */
-  const submitTransaction = async () => {
-    if (transactionId.length !== 12) {
-      toast.error("Transaction ID must be exactly 12 digits");
+  /* ================= SUBMIT UPI ================= */
+  const submitUpiPayment = async () => {
+    if (!paymentScreenshot) {
+      toast.error("Please upload payment screenshot");
       return;
     }
 
     setSubmitting(true);
 
-    const res = await protectedPost(
-      "checkout/",
-      {
-        address_id: selectedAddress.id,
-        payment_method: "upi_manual",
-        transaction_id: transactionId,
-        coupon_code: coupon || null,
-      },
-      navigate
-    );
+    const formData = new FormData();
+    formData.append("address_id", String(selectedAddress!.id));
+    formData.append("payment_method", "upi_manual");
+    if (coupon) formData.append("coupon_code", coupon);
+    formData.append("payment_screenshot", paymentScreenshot);
+
+    const res = await protectedPostMultipart("checkout/", formData, navigate);
 
     setSubmitting(false);
 
@@ -177,14 +182,6 @@ export const Checkout = () => {
           <p className="text-white/70 mt-3">
             Please wait up to 1 hour for confirmation.
           </p>
-
-          <a
-            href="https://wa.me/919961463109"
-            target="_blank"
-            className="block mt-4 text-[#25D366] underline"
-          >
-            WhatsApp: 9961463109
-          </a>
         </div>
       </div>
     );
@@ -196,141 +193,129 @@ export const Checkout = () => {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">Checkout</h1>
 
-        {/* ================= SHIPPING ADDRESS ================= */}
-        <div className="bg-white/10 p-6 rounded-xl mb-6">
-          <h2 className="text-xl font-semibold mb-3">Shipping Address</h2>
-
-          {addresses.map((addr) => (
-            <div
-              key={addr.id}
-              onClick={() => setSelectedAddress(addr)}
-              className={`p-4 rounded-lg cursor-pointer border mb-3 ${selectedAddress?.id === addr.id
-                  ? "border-[#C8A962] bg-[#C8A962]/20"
-                  : "border-white/20"
-                }`}
-            >
-              <p className="font-bold">{addr.full_name}</p>
-              <p className="text-white/70">{addr.phone}</p>
-              <p className="text-white/70">
-                {addr.address_line}, {addr.city}, {addr.state} - {addr.pincode}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* ================= PAYMENT METHOD ================= */}
-        <div className="bg-white/10 p-6 rounded-xl mb-6">
-          <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
-
-          <label className="flex gap-3 mb-3">
-            <input
-              type="radio"
-              checked={paymentMethod === "online"}
-              onChange={() => setPaymentMethod("online")}
+        {/* ================= UPI ONLY VIEW ================= */}
+        {showUpi ? (
+          <div className="bg-white/10 p-6 rounded-xl text-center">
+            <img
+              src="https://fashionfactory-media.s3.us-east-2.amazonaws.com/media/banners/WhatsApp+Image+2026-02-02+at+14.20.52.jpeg"
+              className="mx-auto w-64 h-64 bg-white p-2 rounded-xl"
             />
-            Online Payment (UPI QR)
-          </label>
 
-          <label className="flex gap-3">
+            <p className="mt-3">
+              UPI ID: <b>fashionfactry01@oksbi</b>
+            </p>
+
             <input
-              type="radio"
-              checked={paymentMethod === "wallet"}
-              disabled={walletBalance < payableTotal}
-              onChange={() => setPaymentMethod("wallet")}
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                setPaymentScreenshot(e.target.files?.[0] || null)
+              }
+              className="w-full p-3 mt-4 rounded-lg text-black"
             />
-            Wallet (Balance ₹{walletBalance})
-          </label>
-        </div>
 
-        {/* ================= ORDER SUMMARY ================= */}
-        <div className="bg-white/10 p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-
-          {cartItems.map((item) => (
-            <div key={item.cart_id} className="flex gap-4 mb-4">
-              <img
-                src={item.product.image}
-                className="w-20 h-20 rounded-lg"
-              />
-              <div>
-                <p className="font-semibold">{item.product.name}</p>
-                <p>Qty: {item.quantity}</p>
-                <p className="font-bold">
-                  ₹
-                  {(item.variant.final_price || item.variant.price) *
-                    item.quantity}
-                </p>
-              </div>
-            </div>
-          ))}
-
-          {/* ================= COUPON ================= */}
-          <div className="bg-white/10 p-4 rounded-xl mt-4">
-            <h3 className="font-semibold mb-2">Apply Coupon</h3>
-            <div className="flex gap-2">
-              <input
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value.toUpperCase())}
-                placeholder="COUPON CODE"
-                className="flex-1 p-3 rounded-lg text-black"
-              />
-              <button
-                onClick={applyCoupon}
-                disabled={applyingCoupon}
-                className="bg-white text-black px-4 rounded-lg font-semibold"
-              >
-                Apply
-              </button>
-            </div>
-
-            {discount > 0 && (
-              <div className="flex justify-between text-green-400 mt-2">
-                <span>Discount</span>
-                <span>- ₹{discount}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-between font-bold text-xl mt-6">
-            <span>Total</span>
-            <span>₹{payableTotal}</span>
-          </div>
-
-          {!showUpi ? (
             <button
-              onClick={handleCheckout}
-              className="w-full mt-6 bg-[#C8A962] py-3 rounded-lg font-semibold"
+              onClick={submitUpiPayment}
+              disabled={submitting}
+              className="w-full mt-4 bg-[#C8A962] py-3 rounded-lg font-semibold"
             >
-              {paymentMethod === "wallet" ? "Pay with Wallet" : "Pay Now"}
+              Submit Payment Proof
             </button>
-          ) : (
-            <div className="mt-6 text-center">
-              <img
-                src="https://fashionfactory-media.s3.us-east-2.amazonaws.com/media/banners/WhatsApp+Image+2026-02-02+at+14.20.52.jpeg"
-                className="mx-auto w-64 h-64 bg-white p-2 rounded-xl"
-              />
+          </div>
+        ) : (
+          <>
+            {/* ================= SHIPPING ADDRESS ================= */}
+            <div className="bg-white/10 p-6 rounded-xl mb-6">
+              <h2 className="text-xl font-semibold mb-3">Shipping Address</h2>
 
-              <p className="mt-2">
-                UPI ID: <b>fashionfactry01@oksbi</b>
-              </p>
+              {addresses.map((addr) => (
+                <div
+                  key={addr.id}
+                  onClick={() => setSelectedAddress(addr)}
+                  className={`p-4 rounded-lg cursor-pointer border mb-3 ${selectedAddress?.id === addr.id
+                      ? "border-[#C8A962] bg-[#C8A962]/20"
+                      : "border-white/20"
+                    }`}
+                >
+                  <p className="font-bold">{addr.full_name}</p>
+                  <p className="text-white/70">{addr.phone}</p>
+                  <p className="text-white/70">
+                    {addr.address_line}, {addr.city}, {addr.state} -{" "}
+                    {addr.pincode}
+                  </p>
+                </div>
+              ))}
+            </div>
 
-              <input
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                placeholder="Enter 12-digit Transaction ID"
-                className="w-full p-3 mt-4 rounded-lg text-black"
-              />
+            {/* ================= PAYMENT METHOD ================= */}
+            <div className="bg-white/10 p-6 rounded-xl mb-6">
+              <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
+
+              <label className="flex gap-3 mb-3">
+                <input
+                  type="radio"
+                  checked={paymentMethod === "cashfree"}
+                  onChange={() => setPaymentMethod("cashfree")}
+                />
+                Online Payment (UPI QR)
+              </label>
+
+              <label className="flex gap-3">
+                <input
+                  type="radio"
+                  checked={paymentMethod === "wallet"}
+                  disabled={walletBalance < payableTotal}
+                  onChange={() => setPaymentMethod("wallet")}
+                />
+                Wallet (Balance ₹{walletBalance})
+              </label>
+            </div>
+
+            {/* ================= ORDER SUMMARY ================= */}
+            <div className="bg-white/10 p-6 rounded-xl">
+              {/* COUPON */}
+              <div className="bg-white/10 p-4 rounded-xl mb-4">
+                <h3 className="font-semibold mb-2">Apply Coupon</h3>
+                <div className="flex gap-2">
+                  <input
+                    value={coupon}
+                    onChange={(e) =>
+                      setCoupon(e.target.value.toUpperCase())
+                    }
+                    placeholder="COUPON CODE"
+                    className="flex-1 p-3 rounded-lg text-black"
+                  />
+                  <button
+                    onClick={applyCoupon}
+                    disabled={applyingCoupon}
+                    className="bg-white text-black px-4 rounded-lg font-semibold"
+                  >
+                    Apply
+                  </button>
+                </div>
+
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-400 mt-2">
+                    <span>Discount</span>
+                    <span>- ₹{discount}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between font-bold text-xl mt-4">
+                <span>Total</span>
+                <span>₹{payableTotal}</span>
+              </div>
 
               <button
-                onClick={submitTransaction}
-                disabled={submitting}
-                className="w-full mt-3 bg-[#C8A962] py-3 rounded-lg font-semibold"
+                onClick={handleCheckout}
+                className="w-full mt-6 bg-[#C8A962] py-3 rounded-lg font-semibold"
               >
-                Submit Transaction ID
+                {paymentMethod === "wallet" ? "Pay with Wallet" : "Pay Now"}
               </button>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
